@@ -1,20 +1,19 @@
+# SmartForm — AI-Powered Form Automation & Validation
 
-
-```markdown
-# SmartForm - AI-Powered Form Automation & Validation
 > 📘 Full project documentation: [workflow.md](workflow.md)
 
-A web application that automates the completion of government forms (CNIC correction/renewal) by extracting data from uploaded ID cards using **Tesseract OCR**, auto‑filling forms, and providing an **AI assistant** (powered by a local LLM via Ollama) that validates entries, answers questions, and detects errors. Built entirely with Django, HTMX, and Python—no JavaScript required.
+A web application that automates the completion of government forms (CNIC correction/renewal) by extracting data from uploaded ID cards using **Tesseract OCR**, auto-filling forms, and providing an **AI assistant** (powered by a local LLM via Ollama) that validates entries, answers questions, and detects errors. Built entirely with Django, HTMX, and Python — no JavaScript required.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![Django](https://img.shields.io/badge/django-4.x-green.svg)
 ![HTMX](https://img.shields.io/badge/HTMX-2.0-orange.svg)
-![Ollama](https://img.shields.io/badge/Ollama-llama3-yellow.svg)
+![Ollama](https://img.shields.io/badge/Ollama-qwen3%3A1.7b-yellow.svg)
 ![Tesseract](https://img.shields.io/badge/Tesseract-OCR-9cf)
 
 ---
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
 - [System Architecture](#system-architecture)
@@ -28,74 +27,69 @@ A web application that automates the completion of government forms (CNIC correc
 ---
 
 ## Overview
-Government forms are tedious—citizens retype the same personal information from their ID cards over and over. **SmartForm** solves this by:
+
+Government forms are tedious — citizens retype the same personal information from their ID cards over and over. **SmartForm** solves this by:
 
 1. **Upload** a photo of your CNIC (National ID card).
-2. **Extract** name, father’s name, CNIC number, date of birth using custom OCR (Tesseract + OpenCV).
-3. **Auto‑fill** the application form.
+2. **Extract** name, father's name, CNIC number, and date of birth using custom OCR (Tesseract + OpenCV).
+3. **Auto-fill** the application form.
 4. **Chat** with an AI assistant that explains fields, checks for missing data, and highlights errors.
-5. **Download** a ready‑to‑submit PDF.
+5. **Download** a ready-to-submit PDF.
 
-Everything runs locally—no cloud services, no JavaScript frameworks—making it a great full‑stack portfolio project.
+Everything runs locally — no cloud services, no JavaScript frameworks — making it a great full-stack portfolio project.
 
 ---
 
 ## Tech Stack
-| Component          | Technology |
-|--------------------|-------------|
-| Backend            | Django 4.x + Django REST Framework (optional) |
-| Database           | SQLite (dev) / PostgreSQL (prod) |
-| Frontend           | Django Templates + Bootstrap 5 + HTMX |
-| AI Assistant       | Ollama running `llama3` (local, CPU‑only) |
-| OCR Engine         | Tesseract via `pytesseract`, image preprocessing with OpenCV |
-| PDF Generation     | WeasyPrint |
-| Environment        | pipenv |
+
+| Component      | Technology                                       |
+|-----------------|---------------------------------------------------|
+| Backend         | Django 4.x + Django REST Framework (optional)     |
+| Database        | SQLite (dev) / PostgreSQL (prod)                  |
+| Frontend        | Django Templates + Bootstrap 5 + HTMX             |
+| AI Assistant    | Ollama running `qwen3:1.7b` (local, CPU-only)     |
+| OCR Engine      | Tesseract via `pytesseract`, image preprocessing with OpenCV |
+| PDF Generation  | WeasyPrint                                         |
+| Environment     | pipenv                                             |
 
 ---
 
 ## System Architecture
-```
-┌─────────────┐      HTTP requests       ┌──────────────────┐
-│   Browser   │◄─────────────────────────│   Django App     │
-│  (HTMX UI)  │─────────────────────────►│                  │
-└──────┬──────┘   HTML partials + HTMX    │ • Views          │
-       │                                 │ • Forms          │
-       │ File upload (CNIC image)        │ • Templates      │
-       │                                 │ • OCR call        │
-       │                                 │ • LLM call        │
-       │                                 │ • PDF gen         │
-       │                                 └──┬────┬────┬────┬──┘
-       │                                    │    │    │    │
-       │                    ┌───────────────┘    │    │    └──────────────┐
-       │                    │                    │    │                   │
-       ▼                    ▼                    ▼    ▼                   ▼
-┌─────────────┐   ┌─────────────┐   ┌─────────────┐  ┌──────────┐  ┌─────────┐
-│ File Storage│   │ Tesseract   │   │  Ollama     │  │ Database │  │  PDF    │
-│ (media/)    │   │ OCR Engine  │   │  (llama3)   │  │ (ORM)    │  │ Output  │
-│             │   │ + OpenCV    │   │             │  │          │  │(download)│
-└─────────────┘   └─────────────┘   └─────────────┘  └──────────┘  └─────────┘
+
+```mermaid
+graph TD
+    Browser["Browser (HTMX UI)"] -->|HTTP requests + file upload| Django[Django App]
+    Django -->|HTML partials + HTMX responses| Browser
+    Django -->|save CNIC image| FileStorage["File Storage (media/)"]
+    Django -->|OCR call| Tesseract["Tesseract OCR + OpenCV"]
+    Django -->|LLM call| Ollama["Ollama (qwen3:1.7b)"]
+    Django -->|ORM queries| DB[(Database)]
+    Django -->|generate PDF| PDF["PDF Output"]
+    PDF -->|download| Browser
 ```
 
-*All components run synchronously within the Django request‑response cycle (OCR ~2‑5s, LLM ~3‑7s).*
+> **Note:** All components run synchronously within the Django request–response cycle (OCR ~2–5s, LLM ~3–7s).
 
 ---
 
 ## Features
-- **User Authentication** – sign up, log in, dashboard with application history.
-- **ID Card OCR** – extract personal information from CNIC images using a custom Tesseract pipeline.
-- **Auto‑fill Form** – data from OCR automatically populates the application.
-- **AI Assistant (Chat)** – interactive chat widget (HTMX) that:
+
+- **User Authentication** — sign up, log in, dashboard with application history.
+- **ID Card OCR** — extract personal information from CNIC images using a custom Tesseract pipeline.
+- **Auto-fill Form** — data from OCR automatically populates the application.
+- **AI Assistant (Chat)** — interactive chat widget (HTMX) that:
   - Explains form fields & required documents.
-  - Checks form for errors and missing data.
+  - Checks the form for errors and missing data.
   - Returns structured error messages to highlight specific fields.
-- **Real‑time Validation** – inline field validation powered by Django forms + HTMX.
-- **Consistency Checks** – cross‑field validation (e.g., date of birth vs. age, CNIC format).
-- **PDF Generation** – generates a filled, official‑looking application form for download.
-- **Status Tracking** – visual progress: Draft → Extracted → Validated → PDF Ready.
+- **Real-time Validation** — inline field validation powered by Django forms + HTMX.
+- **Consistency Checks** — cross-field validation (e.g., date of birth vs. age, CNIC format).
+- **PDF Generation** — generates a filled, official-looking application form for download.
+- **Status Tracking** — visual progress: `Draft → Extracted → Validated → PDF Ready`.
 
 ---
 
 ## Project Structure
+
 ```
 smartform/
 ├── manage.py
@@ -120,12 +114,14 @@ smartform/
 ## Getting Started
 
 ### Prerequisites
+
 - **Python 3.12+** (tested on Ubuntu 24.04)
-- **Tesseract OCR** installed system‑wide
-- **Ollama** installed and a model pulled (e.g., `llama3`)
+- **Tesseract OCR** installed system-wide
+- **Ollama** installed and a model pulled (e.g., `qwen3:1.7b`)
 - **pipenv** for virtual environments
 
 ### System Dependencies (Ubuntu)
+
 ```bash
 sudo apt update
 sudo apt install tesseract-ocr tesseract-ocr-eng libgl1 libgtk-3-0t64 \
@@ -134,12 +130,14 @@ sudo apt install tesseract-ocr tesseract-ocr-eng libgl1 libgtk-3-0t64 \
 ```
 
 ### Install Ollama & Pull Model
+
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3
+ollama pull qwen3:1.7b
 ```
 
 ### Clone & Setup Environment
+
 ```bash
 git clone <your-repo-url> smartform
 cd smartform
@@ -147,37 +145,38 @@ pipenv install
 ```
 
 ### Apply Migrations & Create Superuser
+
 ```bash
 pipenv run python3 manage.py migrate
 pipenv run python3 manage.py createsuperuser
 ```
 
 ### Run Development Server
+
 ```bash
 pipenv run python3 manage.py runserver
 ```
-Visit http://localhost:8000
+
+Visit **http://localhost:8000**
 
 ---
 
 ## Roadmap
-This project is the first of three planned portfolio pieces, progressively increasing complexity:
 
-1. **SmartForm (v1)** – current: synchronous OCR + text‑based AI assistant, simple form.
-2. **Next project** – add Celery + RabbitMQ for background processing, support multiple form types.
-3. **Final project** – replace Tesseract with a vision‑language model (Ollama vision), add API endpoints, container orchestration.
+This project is the first of three planned portfolio pieces, progressively increasing in complexity:
+
+1. **SmartForm (v1)** — current: synchronous OCR + text-based AI assistant, simple form.
+2. **Next project** — add Celery + RabbitMQ for background processing, support multiple form types.
+3. **Final project** — replace Tesseract with a vision-language model (Ollama vision), add API endpoints, container orchestration.
 
 ---
 
 ## Contributing
+
 This is a personal portfolio project, but suggestions are welcome! Feel free to open an issue or submit a pull request.
 
 ---
 
 ## License
-This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
-```
 
----
-
-Just save it as `README.md` in your `smartform/` folder. Once you start pushing to GitHub, this will be the first thing people see—clean, professional, and ready for your portfolio.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
