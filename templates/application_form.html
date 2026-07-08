@@ -4,6 +4,22 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <h2>{{ title }}</h2>
+
+        {% if application %}
+        <div class="mb-3">
+            <p><strong>Status:</strong> {{ application.get_status_display }}</p>
+            {% if application.id_card_image %}
+                <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
+            {% else %}
+                <p>No CNIC uploaded yet. 
+                   <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-outline-info">
+                       Upload CNIC
+                   </a>
+                </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
             {{ form.as_p }}

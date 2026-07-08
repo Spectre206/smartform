@@ -31,3 +31,6 @@ class ApplicationForm(forms.ModelForm):
             if age < 18:
                 raise forms.ValidationError("Applicant must be at least 18 years old.")
         return dob
+    
+class ImageUploadForm(forms.Form):
+    image = forms.ImageField()
