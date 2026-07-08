@@ -10,14 +10,15 @@
 1. [Project Overview](#1-project-overview)
 2. [Tech Stack & Rationale](#2-tech-stack--rationale)
 3. [System Architecture](#3-system-architecture)
-4. [Project Directory Structure](#4-project-directory-structure)
-5. [Setup Instructions](#5-setup-instructions)
-6. [Branching Strategy](#6-branching-strategy)
-7. [Development Workflow](#7-development-workflow)
-8. [Key Design Decisions](#8-key-design-decisions)
-9. [Roadmap (v1)](#9-roadmap-v1-features--build-order)
-10. [Troubleshooting & Common Pitfalls](#10-troubleshooting--common-pitfalls)
-11. [Future Upgrades](#11-future-upgrades-portfolio-v2-v3)
+4. [LLM Call Lifecycle (Single Request)](#4-llm-call-lifecycle-single-request)
+5. [Project Directory Structure](#5-project-directory-structure)
+6. [Setup Instructions](#6-setup-instructions)
+7. [Branching Strategy](#7-branching-strategy)
+8. [Development Workflow](#8-development-workflow)
+9. [Key Design Decisions](#9-key-design-decisions)
+10. [Roadmap (v1)](#10-roadmap-v1-features--build-order)
+11. [Troubleshooting & Common Pitfalls](#11-troubleshooting--common-pitfalls)
+12. [Future Upgrades](#12-future-upgrades-portfolio-v2-v3)
 
 ---
 
@@ -85,7 +86,51 @@ The `Django App` node above is composed of three internal apps:
 
 ---
 
-## 4. Project Directory Structure
+## 4. LLM Call Lifecycle (Single Request)
+
+This section zooms into the one part of the request cycle that isn't a simple I/O call: what actually happens between the browser and Ollama when a user sends a chat message.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (HTMX)
+    participant D as Django (assistant app)
+    participant O as Ollama (qwen3:1.7b)
+    participant DB as Database
+
+    B->>D: POST /assistant/chat/ (user message + form context)
+    activate D
+    D->>D: Build prompt = system_prompt.txt + current form field values + user's message
+    D->>O: POST localhost:11434 (prompt)
+    activate O
+    Note over O: Local inference (~3-7s, CPU-only)
+    O-->>D: Raw text response (may include ERROR_FIELD:xxx markers)
+    deactivate O
+    D->>D: Parse response: extract chat reply + ERROR_FIELD tags
+    D->>DB: Update Application row (if fields flagged)
+    D-->>B: HTML partial (chat bubble + flagged fields)
+    deactivate D
+    Note over B: HTMX swaps partial into the DOM
+```
+
+### What's happening at each step (and why it matters for you)
+
+1. **Browser → Django** — HTMX posts the user's chat message to `/assistant/chat/`. This is a normal form POST, no JavaScript fetch logic needed.
+2. **Prompt building (`assistant` app)** — Django doesn't just forward the raw message to the model. It assembles a full prompt out of three parts:
+   - `system_prompt.txt` — the persona/instructions that tell the model how to behave and how to format validation output.
+   - The **current form state** — the field values already extracted/entered, so the model has context to actually validate, not just chat blindly.
+   - The **user's message** itself.
+3. **Django → Ollama** — a synchronous HTTP POST to `localhost:11434`. The Django worker thread blocks here for the full duration of inference (~3–7s on CPU). Nothing else happens in that request until Ollama replies.
+4. **The `ERROR_FIELD` trick** — this is the key design idea worth understanding. `qwen3:1.7b` is a small local model, so instead of forcing it to return structured JSON (which small models are often unreliable at), the system prompt instructs it to embed simple markers like `ERROR_FIELD:cnic_number` inside its normal plain-text reply. Django then parses the response with a lightweight text scan: the human-readable part becomes the chat bubble, and any `ERROR_FIELD` markers become instructions to Django to flag that specific field in the database and UI. One model output, two consumers — the person reading it and Django's parser.
+5. **Django → Database** — if any fields were flagged, the `Application` row is updated so the "invalid" state persists across page reloads, not just in that one chat response.
+6. **Django → Browser** — Django returns an HTML partial (not JSON), and HTMX swaps it directly into the chat window and/or highlights the flagged fields — no client-side JavaScript needed to interpret the response.
+
+### Why this is synchronous (and when that becomes a problem)
+
+Because there's no task queue in v1, the Django worker handling this request is fully blocked for the entire 3–7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
+
+---
+
+## 5. Project Directory Structure
 
 ```
 smartform/
@@ -103,7 +148,7 @@ smartform/
 
 ---
 
-## 5. Setup Instructions
+## 6. Setup Instructions
 
 Run these steps after cloning the repository.
 
@@ -137,7 +182,7 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 6. Branching Strategy
+## 7. Branching Strategy
 
 *(Simplified Git Flow)*
 
@@ -160,9 +205,9 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 7. Development Workflow
+## 8. Development Workflow
 
-1. Pick a feature from the [roadmap](#9-roadmap-v1-features--build-order).
+1. Pick a feature from the [roadmap](#10-roadmap-v1-features--build-order).
 2. Create a branch: `git checkout -b feature/<name> develop`
 3. Implement the feature, committing often.
 4. Push the branch and open a pull request into `develop`.
@@ -170,7 +215,7 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 8. Key Design Decisions
+## 9. Key Design Decisions
 
 - **Synchronous OCR & LLM calls** — Keeps the architecture simple for v1. Later versions will add Celery + RabbitMQ.
 - **HTMX over JavaScript** — The developer has no frontend experience; HTMX provides interactivity using pure HTML.
@@ -180,7 +225,7 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 9. Roadmap (v1 features – build order)
+## 10. Roadmap (v1 features – build order)
 
 - [x] Project scaffold, dependencies, branching, and this document
 - [ ] User authentication (Django built-in login/logout/signup)
@@ -195,7 +240,7 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 10. Troubleshooting & Common Pitfalls
+## 11. Troubleshooting & Common Pitfalls
 
 | Issue                                          | Solution                                                                                   |
 |-------------------------------------------------|-----------------------------------------------------------------------------------------------|
@@ -209,7 +254,7 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 11. Future Upgrades (portfolio v2, v3)
+## 12. Future Upgrades (portfolio v2, v3)
 
 - **v2:** Celery + RabbitMQ for background tasks; support for multiple form types
 - **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration
