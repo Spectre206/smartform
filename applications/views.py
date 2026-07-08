@@ -4,7 +4,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Application
-from .forms import ApplicationForm
+from .forms import ApplicationForm, ImageUploadForm
+from ocr_engine.extractor import extract_cnic_data
 
 # ---------- Authentication ----------
 def signup(request):
@@ -56,3 +57,42 @@ def edit_application(request, pk):
         'application': application,
         'title': 'Edit Application'
     })
+
+@login_required
+def upload_cnic(request, pk):
+    application = get_object_or_404(Application, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.cleaned_data['image']
+            application.id_card_image = image
+            application.save()
+
+            # Run OCR extraction
+            image_path = application.id_card_image.path
+            extracted = extract_cnic_data(image_path)
+
+            # Update fields if extracted data is not empty
+            if extracted.get('full_name'):
+                application.full_name = extracted['full_name']
+            if extracted.get('father_name'):
+                application.father_name = extracted['father_name']
+            if extracted.get('cnic_number'):
+                application.cnic_number = extracted['cnic_number']
+            if extracted.get('date_of_birth'):
+                # Convert string to date object (expected format dd-mm-yyyy)
+                try:
+                    from datetime import datetime
+                    application.date_of_birth = datetime.strptime(
+                        extracted['date_of_birth'], '%d-%m-%Y'
+                    ).date()
+                except (ValueError, KeyError):
+                    pass  # leave as is if parsing fails
+
+            application.status = 'extracted'
+            application.save()
+            messages.success(request, "CNIC uploaded and data extracted.")
+            return redirect('edit_application', pk=application.pk)
+    else:
+        form = ImageUploadForm()
+    return render(request, 'upload_cnic.html', {'form': form, 'application': application})
