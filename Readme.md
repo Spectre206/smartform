@@ -47,8 +47,8 @@ graph TD
     Browser["Browser (HTMX UI)"] -->|HTTP requests + file upload| Django[Django App]
     Django -->|HTML partials + HTMX responses| Browser
     Django -->|save CNIC image| FileStorage["File Storage (media/)"]
-    Django -->|OCR call (sync)| Tesseract["Tesseract OCR + OpenCV"]
-    Django -->|LLM call (sync)| Ollama["Ollama (qwen3:1.7b)"]
+    Django -->|OCR call - sync| Tesseract["Tesseract OCR + OpenCV"]
+    Django -->|LLM call - sync| Ollama["Ollama (qwen3:1.7b)"]
     Django -->|ORM queries| DB[(Database)]
     Django -->|generate PDF| PDF["PDF Output"]
     PDF -->|download| Browser
