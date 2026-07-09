@@ -1,5 +1,3 @@
-
-```markdown
 # 🧾 SmartForm — Project & Workflow Guide
 
 > **Purpose:** A complete reference for the SmartForm project — architecture, tech stack, branching strategy, development workflow, and troubleshooting.
@@ -258,5 +256,3 @@ pipenv run python3 manage.py runserver
 
 - **v2:** Celery + RabbitMQ for background tasks; support for multiple form types
 - **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration
-```
-

@@ -1,6 +1,3 @@
-
-
-```markdown
 # SmartForm — AI-Powered Form Automation & Validation (v1)
 
 > 📘 Full project documentation: [workflow.md](workflow.md)
@@ -175,6 +172,3 @@ Visit **http://localhost:8000**
 ## License
 
 MIT
-```
-
----
