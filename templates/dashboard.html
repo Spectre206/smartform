@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Welcome, {{ user.username }}!</h1>
+<div class="mb-3">
+    <a href="{% url 'create_application' %}" class="btn btn-primary">New CNIC Application</a>
+</div>
+{% if applications %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Service</th>
+                <th>Full Name</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for app in applications %}
+            <tr>
+                <td>{{ app.id }}</td>
+                <td>{{ app.service_type }}</td>
+                <td>{{ app.full_name|default:"-" }}</td>
+                <td><span class="badge bg-{% if app.status == 'draft' %}secondary{% elif app.status == 'extracted' %}info{% elif app.status == 'validated' %}success{% else %}dark{% endif %}">{{ app.get_status_display }}</span></td>
+                <td>{{ app.created_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <a href="{% url 'edit_application' app.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a href="{% url 'generate_pdf' app.id %}" class="btn btn-sm btn-outline-success">PDF</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>You haven't submitted any applications yet.</p>
+{% endif %}
+{% endblock %}

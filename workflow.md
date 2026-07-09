@@ -42,10 +42,10 @@ Built entirely with **Django, HTMX, and Python** — no JavaScript frameworks re
 
 | Component      | Technology                          | Why                                                  |
 |-----------------|--------------------------------------|-------------------------------------------------------|
-| Backend         | Django 4.x / 6.x                     | Full-stack framework, great for forms, templates, ORM |
+| Backend         | Django 6.x                           | Full-stack framework, great for forms, templates, ORM |
 | Database        | SQLite (dev)                         | Simple to start with; can switch to PostgreSQL later  |
 | Frontend        | Django Templates, Bootstrap 5, HTMX  | Dynamic UI without writing JavaScript                 |
-| AI Assistant    | Ollama `qwen3:1.7b`                   | Lightweight (~1.2 GB), runs on CPU, good instruction-following |
+| AI Assistant    | Ollama `qwen3:1.7b`                  | Lightweight (~1.2 GB), runs on CPU, good instruction-following |
 | OCR Engine      | Tesseract + OpenCV preprocessing     | Free, offline, no GPU required                        |
 | PDF Generation  | WeasyPrint                            | Converts HTML/CSS to PDF in pure Python               |
 | Environment     | pipenv                                | Reproducible builds; virtualenv kept inside project (`.venv/`) |
@@ -95,38 +95,35 @@ sequenceDiagram
     participant B as Browser (HTMX)
     participant D as Django (assistant app)
     participant O as Ollama (qwen3:1.7b)
-    participant DB as Database
 
-    B->>D: POST /assistant/chat/ (user message + form context)
+    B->>D: POST /assistant/ask/ (user message + application_id)
     activate D
     D->>D: Build prompt = system_prompt.txt + current form field values + user's message
-    D->>O: POST localhost:11434 (prompt)
+    D->>O: POST localhost:11434/api/generate (prompt)
     activate O
     Note over O: Local inference (~3-7s, CPU-only)
     O-->>D: Raw text response (may include ERROR_FIELD:xxx markers)
     deactivate O
     D->>D: Parse response: extract chat reply + ERROR_FIELD tags
-    D->>DB: Update Application row (if fields flagged)
-    D-->>B: HTML partial (chat bubble + flagged fields)
+    D-->>B: HTML partial (chat bubble + highlighted fields via hx-swap-oob)
     deactivate D
-    Note over B: HTMX swaps partial into the DOM
+    Note over B: HTMX swaps the partial into the chat history and applies field highlighting
 ```
 
 ### What's happening at each step (and why it matters for you)
 
-1. **Browser → Django** — HTMX posts the user's chat message to `/assistant/chat/`. This is a normal form POST, no JavaScript fetch logic needed.
+1. **Browser → Django** — HTMX posts the user's chat message to `/assistant/ask/`. This is a normal form POST, no JavaScript fetch logic needed.
 2. **Prompt building (`assistant` app)** — Django doesn't just forward the raw message to the model. It assembles a full prompt out of three parts:
    - `system_prompt.txt` — the persona/instructions that tell the model how to behave and how to format validation output.
    - The **current form state** — the field values already extracted/entered, so the model has context to actually validate, not just chat blindly.
    - The **user's message** itself.
-3. **Django → Ollama** — a synchronous HTTP POST to `localhost:11434`. The Django worker thread blocks here for the full duration of inference (~3–7s on CPU). Nothing else happens in that request until Ollama replies.
-4. **The `ERROR_FIELD` trick** — this is the key design idea worth understanding. `qwen3:1.7b` is a small local model, so instead of forcing it to return structured JSON (which small models are often unreliable at), the system prompt instructs it to embed simple markers like `ERROR_FIELD:cnic_number` inside its normal plain-text reply. Django then parses the response with a lightweight text scan: the human-readable part becomes the chat bubble, and any `ERROR_FIELD` markers become instructions to Django to flag that specific field in the database and UI. One model output, two consumers — the person reading it and Django's parser.
-5. **Django → Database** — if any fields were flagged, the `Application` row is updated so the "invalid" state persists across page reloads, not just in that one chat response.
-6. **Django → Browser** — Django returns an HTML partial (not JSON), and HTMX swaps it directly into the chat window and/or highlights the flagged fields — no client-side JavaScript needed to interpret the response.
+3. **Django → Ollama** — a synchronous HTTP POST to `localhost:11434/api/generate`. The Django worker thread blocks here for the full duration of inference (~3-7s on CPU). Nothing else happens in that request until Ollama replies.
+4. **The `ERROR_FIELD` trick** — this is the key design idea worth understanding. `qwen3:1.7b` is a small local model, so instead of forcing it to return structured JSON (which small models are often unreliable at), the system prompt instructs it to embed simple markers like `ERROR_FIELD:cnic_number` inside its normal plain-text reply. Django then parses the response with a lightweight text scan: the human-readable part becomes the chat bubble, and any `ERROR_FIELD` markers become instructions to Django to flag that specific field in the UI via HTMX out-of-band swaps. One model output, two consumers — the person reading it and Django's parser.
+5. **Django → Browser** — Django returns an HTML partial (not JSON), and HTMX swaps the chat message into the chat history and, if there were errors, highlights the corresponding fields. No database changes are made; the highlighting is purely visual and ephemeral.
 
 ### Why this is synchronous (and when that becomes a problem)
 
-Because there's no task queue in v1, the Django worker handling this request is fully blocked for the entire 3–7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
+Because there's no task queue in v1, the Django worker handling this request is fully blocked for the entire 3-7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
 
 ---
 
@@ -222,21 +219,22 @@ pipenv run python3 manage.py runserver
 - **Tesseract instead of a vision LLM** — Lightweight, no GPU needed; custom preprocessing improves accuracy on ID cards.
 - **`qwen3:1.7b`** — Minimal RAM footprint (~2–3 GB), yet capable enough for structured validation and chat.
 - **Models registered in Django admin** — Allows easy inspection of data during development.
+- **Assistant does not persist validation errors** — In v1, chat validation errors are displayed inline via HTMX out-of-band swaps but do not modify the database. This keeps the assistant stateless and avoids accidental overwrites.
 
 ---
 
 ## 10. Roadmap (v1 features – build order)
 
 - [x] Project scaffold, dependencies, branching, and this document
-- [ ] User authentication (Django built-in login/logout/signup)
-- [ ] Dashboard (list user applications)
-- [ ] Application form (manual entry)
-- [ ] OCR extraction pipeline → auto-fill form
-- [ ] AI assistant chat (HTMX)
-- [ ] Assistant-based validation (`ERROR_FIELD` parsing)
-- [ ] Final submission & status tracking
-- [ ] PDF generation (WeasyPrint)
-- [ ] Polish & Docker
+- [x] User authentication (Django built-in login/logout/signup)
+- [x] Dashboard (list user applications)
+- [x] Application form (manual entry)
+- [x] OCR extraction pipeline → auto-fill form
+- [x] AI assistant chat (HTMX)
+- [x] Assistant-based validation (`ERROR_FIELD` parsing)
+- [x] Final submission & status tracking (statuses visible, manually advanced)
+- [x] PDF generation (WeasyPrint)
+- [ ] Polish & Docker (future)
 
 ---
 
@@ -258,5 +256,3 @@ pipenv run python3 manage.py runserver
 
 - **v2:** Celery + RabbitMQ for background tasks; support for multiple form types
 - **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration
-
----
