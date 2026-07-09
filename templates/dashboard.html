@@ -25,7 +25,10 @@
                 <td>{{ app.full_name|default:"-" }}</td>
                 <td><span class="badge bg-{% if app.status == 'draft' %}secondary{% elif app.status == 'extracted' %}info{% elif app.status == 'validated' %}success{% else %}dark{% endif %}">{{ app.get_status_display }}</span></td>
                 <td>{{ app.created_at|date:"Y-m-d H:i" }}</td>
-                <td><a href="{% url 'edit_application' app.id %}" class="btn btn-sm btn-outline-primary">Edit</a></td>
+                <td>
+                    <a href="{% url 'edit_application' app.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a href="{% url 'generate_pdf' app.id %}" class="btn btn-sm btn-outline-success">PDF</a>
+                </td>
             </tr>
         {% endfor %}
         </tbody>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CNIC Correction Application</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h2 { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        .status { margin-top: 30px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>CNIC Correction Application</h2>
+    <table>
+        <tr><th>Application ID</th><td>{{ application.id }}</td></tr>
+        <tr><th>Full Name</th><td>{{ application.full_name }}</td></tr>
+        <tr><th>Father's Name</th><td>{{ application.father_name }}</td></tr>
+        <tr><th>CNIC Number</th><td>{{ application.cnic_number }}</td></tr>
+        <tr><th>Date of Birth</th><td>{{ application.date_of_birth }}</td></tr>
+        <tr><th>Address</th><td>{{ application.address }}</td></tr>
+        <tr><th>City</th><td>{{ application.city }}</td></tr>
+        <tr><th>Reason for Correction</th><td>{{ application.reason }}</td></tr>
+    </table>
+    <p class="status">Status: {{ application.get_status_display }}</p>
+    <p>This is a computer‑generated document. No signature required for the digital copy.</p>
+</body>
+</html>

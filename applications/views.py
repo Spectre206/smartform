@@ -1,3 +1,8 @@
+import os
+from django.conf import settings
+from django.http import FileResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
@@ -96,3 +101,26 @@ def upload_cnic(request, pk):
     else:
         form = ImageUploadForm()
     return render(request, 'upload_cnic.html', {'form': form, 'application': application})
+
+#---------- Print Application ----------
+@login_required
+def generate_pdf(request, pk):
+    application = get_object_or_404(Application, pk=pk, user=request.user)
+
+    # Render an HTML template with application data
+    html_string = render_to_string('pdf/application_pdf.html', {'application': application})
+
+    # Generate the PDF file
+    pdf_dir = os.path.join(settings.MEDIA_ROOT, 'pdfs')
+    os.makedirs(pdf_dir, exist_ok=True)
+    pdf_path = os.path.join(pdf_dir, f'application_{application.pk}.pdf')
+    HTML(string=html_string).write_pdf(target=pdf_path)
+
+    # Save the file reference and update status
+    application.pdf_file = f'pdfs/application_{application.pk}.pdf'
+    application.status = 'pdf_ready'
+    application.save()
+
+    # Return the PDF as a downloadable file
+    return FileResponse(open(pdf_path, 'rb'), as_attachment=True,
+                        filename=f'application_{application.pk}.pdf')
