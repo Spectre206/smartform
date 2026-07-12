@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}SmartForm – AI Form Automation{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="py-5 bg-light">
+    <div class="container text-center">
+        <h1 class="display-4 fw-bold text-forest" style="color: var(--forest-green);">
+            Automate Your Government Forms with AI
+        </h1>
+        <p class="lead text-muted">
+            Upload your ID card, let our AI assistant fill the form, validate the data, and download a ready‑to‑submit PDF — all without typing a single word.
+        </p>
+        <div class="mt-4">
+            <a href="{% url 'signup' %}" class="btn btn-forest btn-lg px-4 me-2">
+                Get Started Free
+            </a>
+            <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">
+                Login
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-3">📄</div>
+                        <h5 class="card-title">OCR Extraction</h5>
+                        <p class="card-text">
+                            Snap a photo of your CNIC and our Tesseract OCR engine automatically pulls out your name, number, and more.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-3">🤖</div>
+                        <h5 class="card-title">AI Validation</h5>
+                        <p class="card-text">
+                            A local AI assistant checks your form for errors and missing fields in real time, using a small language model running entirely on your machine.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-3">📥</div>
+                        <h5 class="card-title">Ready‑to‑Print PDF</h5>
+                        <p class="card-text">
+                            Generate a professionally formatted PDF of your application with a single click — ready to sign and submit.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How it works -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-4" style="color: var(--forest-green);">How It Works</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Create an Account</div>
+                            Sign up in seconds — no personal info needed.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Upload Your CNIC</div>
+                            Drag & drop a clear photo of your National ID card.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Review & Validate</div>
+                            The assistant flags any issues — fix them instantly.
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">Download PDF</div>
+                            Get your completed application, ready to submit.
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 text-white" style="background-color: var(--forest-green);">
+    <div class="container text-center">
+        <h2 class="fw-bold mb-3">Ready to simplify your paperwork?</h2>
+        <p class="lead mb-4">Join today and experience the future of form automation.</p>
+        <a href="{% url 'signup' %}" class="btn btn-light btn-lg px-5">Create Free Account</a>
+    </div>
+</section>
+
+{% endblock %}
