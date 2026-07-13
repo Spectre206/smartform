@@ -1,4 +1,5 @@
-# SmartForm — AI-Powered Form Automation & Validation (v1)
+```markdown
+# SmartForm — AI-Powered Form Automation & Validation (v1.5)
 
 > 📘 Full project documentation: [workflow.md](workflow.md)
 
@@ -23,6 +24,17 @@ A web application that automates the completion of government forms (CNIC correc
 5. **Download** a ready-to-submit PDF.
 
 Everything runs locally — no cloud services, no JavaScript frameworks.
+
+---
+
+## What’s New in v1.5
+
+- **Landing page** – public homepage with hero section, feature cards, and step‑by‑step guide.
+- **Complete UI overhaul** – forest‑green color scheme, centered forms, semantic HTML5 layout.
+- **Responsive design** – mobile‑friendly forms, stacked chat on small screens.
+- **Bootstrap 5 styled forms** – all inputs use `form-control`, green buttons, proper labels and error feedback.
+- **Test reorganization** – tests split into per‑app `tests/` packages (`applications/tests/`, `assistant/tests/`, `ocr_engine/tests/`).
+- **Custom template filter** – `add_class` filter adds Bootstrap classes to form fields cleanly.
 
 ---
 
@@ -58,22 +70,24 @@ graph TD
 
 ---
 
-## Features (v1)
+## Features (v1.5)
 
-- **User Authentication** — sign up, log in, dashboard with application history.
-- **ID Card OCR** — extract personal information from CNIC images using a custom Tesseract pipeline (works best on clean, machine-printed mock images – see limitations).
-- **Auto-fill Form** — data from OCR automatically populates the application.
-- **AI Assistant (Chat)** — interactive chat widget (HTMX) that:
+- **Landing page** – public‑facing hero, feature cards, and CTA.
+- **User Authentication** – sign up, log in, dashboard with application history.
+- **ID Card OCR** – extract personal information from CNIC images using a custom Tesseract pipeline (works best on clean, machine-printed mock images – see limitations).
+- **Auto-fill Form** – data from OCR automatically populates the application.
+- **AI Assistant (Chat)** – interactive chat widget (HTMX) that:
   - Explains form fields & required documents.
   - Checks the form for errors and missing data.
   - Highlights specific fields with error messages.
-- **Real-time Validation** — inline field validation powered by Django forms + HTMX.
-- **PDF Generation** — generates a filled, official-looking application form for download.
-- **Status Tracking** — visual progress: `Draft → Extracted → Validated → PDF Ready` (currently advanced manually via admin or direct link).
+- **Real-time Validation** – inline field validation powered by Django forms + HTMX.
+- **PDF Generation** – generates a filled, official-looking application form for download.
+- **Status Tracking** – visual progress: `Draft → Extracted → Validated → PDF Ready` (currently advanced manually via admin or direct link).
+- **Consistent UI** – forest‑green header/footer, centered forms, Bootstrap 5 styling.
 
 ---
 
-## Current Limitations (honest for v1)
+## Current Limitations (honest for v1.5)
 
 - **OCR Accuracy:** The Tesseract pipeline uses simple rules and does not always extract data correctly from real CNIC photos. For demos, use the provided mock CNIC generator.
 - **Synchronous Processing:** OCR and AI assistant calls run inside the request/response cycle, making the UI wait (up to a few seconds). Background workers (Celery) are planned for v2.
@@ -109,8 +123,12 @@ smartform/
 ├── system_prompt.txt
 ├── config/                  # Django project settings
 ├── applications/            # Core app: form model, views, dashboards
+│   ├── templatetags/        # Custom template filters (add_class)
+│   └── tests/               # Test package (test_auth, test_forms, test_pdf)
 ├── assistant/               # AI chat assistant
+│   └── tests/               # Test package (test_views)
 ├── ocr_engine/              # Tesseract pipeline
+│   └── tests/               # Test package (test_views)
 ├── templates/               # Global templates & partials
 ├── static/                  # CSS
 ├── media/                   # Uploaded images & generated PDFs
@@ -172,3 +190,4 @@ Visit **http://localhost:8000**
 ## License
 
 MIT
+```
