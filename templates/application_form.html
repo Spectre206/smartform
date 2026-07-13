@@ -1,68 +1,94 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 {% block title %}{{ title }}{% endblock %}
+
 {% block content %}
-<div class="row">
-    <!-- Form column -->
-    <div class="col-md-7">
-        <h2>{{ title }}</h2>
+<div class="container py-4">
+    <!-- Title -->
+    <h2 class="text-center mb-4" style="color: var(--forest-green);">{{ title }}</h2>
 
-        {% if application %}
-        <div class="mb-3">
-            <p><strong>Status:</strong> {{ application.get_status_display }}</p>
-            {% if application.id_card_image %}
-                <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
-            {% else %}
-                <p>No CNIC uploaded yet. 
-                   <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-outline-info">
-                       Upload CNIC
-                   </a>
-                </p>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <form method="post" id="application-form">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Save</button>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
-        </form>
-    </div>
-
-    <!-- Chat column (only shown when editing an existing application) -->
+    <!-- Status & Upload info (only when editing) -->
     {% if application %}
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header">AI Assistant</div>
-            <div class="card-body" style="height: 400px; overflow-y: auto;" id="chat-history">
-                <!-- Messages appended by HTMX -->
-            </div>
-            <div class="card-footer">
-                <form hx-post="{% url 'ask_assistant' %}" 
-                    hx-target="#chat-history" 
-                    hx-swap="beforeend" 
-                    hx-include="#application-id, #message-input"
-                    hx-indicator="#spinner"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-                    <input type="hidden" name="application_id" id="application-id" value="{{ application.id }}">
-                    <div class="input-group">
-                        <input type="text" class="form-control" name="message" id="message-input" placeholder="Ask me about the form..." required>
-                        <button class="btn btn-outline-secondary" type="submit">Send</button>
-                    </div>
-                </form>
-                <div id="spinner" class="htmx-indicator text-center mt-1">
-                    <small>Assistant is typing...</small>
-                </div>
-            </div>
-        </div>
-        <!-- Error placeholders for each field (hidden until needed) -->
-        <div id="error-full_name"></div>
-        <div id="error-father_name"></div>
-        <div id="error-cnic_number"></div>
-        <div id="error-date_of_birth"></div>
-        <div id="error-address"></div>
-        <div id="error-city"></div>
+    <div class="text-center mb-4">
+        <p><strong>Status:</strong> <span class="badge 
+            {% if application.status == 'draft' %}bg-secondary
+            {% elif application.status == 'extracted' %}bg-info
+            {% elif application.status == 'validated' %}bg-success
+            {% else %}bg-dark{% endif %}">
+            {{ application.get_status_display }}
+        </span></p>
+        {% if application.id_card_image %}
+            <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
+        {% else %}
+            <p>
+                <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-forest">Upload CNIC</a>
+            </p>
+        {% endif %}
     </div>
     {% endif %}
+
+    <div class="row justify-content-center">
+        <!-- Form column -->
+        <div class="{% if application %}col-md-7{% else %}col-md-8 col-lg-6{% endif %}">
+            <form method="post" id="application-form">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-forest">Save</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Chat column (only when editing an existing application) -->
+        {% if application %}
+        <div class="col-md-5 mt-4 mt-md-0">
+            <div class="card border-success">
+                <div class="card-header bg-forest text-white">
+                    <strong>AI Assistant</strong>
+                </div>
+                <div class="card-body" style="height: 400px; overflow-y: auto;" id="chat-history">
+                    <!-- Messages appended by HTMX -->
+                </div>
+                <div class="card-footer">
+                    <form hx-post="{% url 'ask_assistant' %}"
+                          hx-target="#chat-history"
+                          hx-swap="beforeend"
+                          hx-include="#application-id, #message-input"
+                          hx-indicator="#spinner"
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                        <input type="hidden" name="application_id" id="application-id" value="{{ application.id }}">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="message" id="message-input"
+                                   placeholder="Ask me about the form..." required>
+                            <button class="btn btn-forest" type="submit">Send</button>
+                        </div>
+                    </form>
+                    <div id="spinner" class="htmx-indicator text-center mt-1">
+                        <small class="text-muted">Assistant is typing...</small>
+                    </div>
+                </div>
+            </div>
+            <!-- Error placeholders for each field (for out-of-band swaps) -->
+            <div id="error-full_name"></div>
+            <div id="error-father_name"></div>
+            <div id="error-cnic_number"></div>
+            <div id="error-date_of_birth"></div>
+            <div id="error-address"></div>
+            <div id="error-city"></div>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

@@ -12,6 +12,12 @@ from .models import Application
 from .forms import ApplicationForm, ImageUploadForm
 from ocr_engine.extractor import extract_cnic_data
 
+def landing(request):
+    # If user is already logged in, redirect to dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'landing.html')
+
 # ---------- Authentication ----------
 def signup(request):
     if request.method == 'POST':
