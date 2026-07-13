@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <!-- Title centered -->
+    <!-- Title -->
     <h2 class="text-center mb-4" style="color: var(--forest-green);">{{ title }}</h2>
 
+    <!-- Status & Upload info (only when editing) -->
     {% if application %}
-    <!-- Status + Upload info centered -->
     <div class="text-center mb-4">
         <p><strong>Status:</strong> <span class="badge 
             {% if application.status == 'draft' %}bg-secondary
@@ -20,9 +21,7 @@
             <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
         {% else %}
             <p>
-                <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-forest">
-                    Upload CNIC
-                </a>
+                <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-forest">Upload CNIC</a>
             </p>
         {% endif %}
     </div>
@@ -33,10 +32,21 @@
         <div class="{% if application %}col-md-7{% else %}col-md-8 col-lg-6{% endif %}">
             <form method="post" id="application-form">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <div class="text-center mt-3">
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="text-center mt-4">
                     <button type="submit" class="btn btn-forest">Save</button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </form>
         </div>
@@ -70,7 +80,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Error placeholders for each field -->
+            <!-- Error placeholders for each field (for out-of-band swaps) -->
             <div id="error-full_name"></div>
             <div id="error-father_name"></div>
             <div id="error-cnic_number"></div>

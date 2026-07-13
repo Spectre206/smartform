@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 {% block title %}Upload CNIC Image{% endblock %}
 
 {% block content %}
@@ -9,8 +10,16 @@
             <p class="text-center">Application ID: {{ application.id }}</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <div class="text-center">
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="text-center mt-4">
                     <button type="submit" class="btn btn-forest">Upload & Extract</button>
                 </div>
             </form>

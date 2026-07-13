@@ -1,16 +1,25 @@
 {% extends 'base.html' %}
+{% load form_tags %}
 {% block title %}Login{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <h2 class="text-center mb-4" style="color: var(--forest-green);">Login</h2>
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-6 col-lg-5">
             <form method="post">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <div class="text-center">
-                    <button type="submit" class="btn btn-forest">Login</button>
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-forest w-100">Login</button>
                 </div>
             </form>
             <p class="text-center mt-3">
