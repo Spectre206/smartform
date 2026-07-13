@@ -12,4 +12,5 @@ urlpatterns = [
     path('application/<int:pk>/edit/', views.edit_application, name='edit_application'),
     path('application/<int:pk>/upload/', views.upload_cnic, name='upload_cnic'),
     path('application/<int:pk>/pdf/', views.generate_pdf, name='generate_pdf'),
+    path('application/<int:pk>/validate/', views.validate_application, name='validate_application'),
 ]

@@ -17,12 +17,21 @@
             {% else %}bg-dark{% endif %}">
             {{ application.get_status_display }}
         </span></p>
+
         {% if application.id_card_image %}
             <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
         {% else %}
             <p>
                 <a href="{% url 'upload_cnic' application.pk %}" class="btn btn-sm btn-forest">Upload CNIC</a>
             </p>
+        {% endif %}
+
+        <!-- Validate button – only when extracted -->
+        {% if application.status == 'extracted' %}
+        <form method="post" action="{% url 'validate_application' application.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-success ms-2">Validate</button>
+        </form>
         {% endif %}
     </div>
     {% endif %}
@@ -80,13 +89,21 @@
                     </div>
                 </div>
             </div>
-            <!-- Error placeholders for each field (for out-of-band swaps) -->
+
+            <!-- Error placeholders for each field (for out-of-band swaps from chat) -->
             <div id="error-full_name"></div>
             <div id="error-father_name"></div>
             <div id="error-cnic_number"></div>
             <div id="error-date_of_birth"></div>
             <div id="error-address"></div>
             <div id="error-city"></div>
+
+            <!-- Validation errors from Validate button (static) -->
+            {% if validation_errors %}
+                {% for error in validation_errors %}
+                    <div class="alert alert-danger p-2 mt-2">{{ error.message }}</div>
+                {% endfor %}
+            {% endif %}
         </div>
         {% endif %}
     </div>
