@@ -1,4 +1,4 @@
-# 🧾 SmartForm — Project & Workflow Guide
+# 🧾 SmartForm — Project & Workflow Guide (v1.5)
 
 > **Purpose:** A complete reference for the SmartForm project — architecture, tech stack, branching strategy, development workflow, and troubleshooting.
 > **Goal:** Any developer (or AI assistant) should be able to read this document and immediately know how to work on the project.
@@ -16,7 +16,7 @@
 7. [Branching Strategy](#7-branching-strategy)
 8. [Development Workflow](#8-development-workflow)
 9. [Key Design Decisions](#9-key-design-decisions)
-10. [Roadmap (v1)](#10-roadmap-v1-features--build-order)
+10. [Roadmap (v1.5)](#10-roadmap-v15-features--build-order)
 11. [Troubleshooting & Common Pitfalls](#11-troubleshooting--common-pitfalls)
 12. [Future Upgrades](#12-future-upgrades-portfolio-v2-v3)
 
@@ -24,7 +24,7 @@
 
 ## 1. Project Overview
 
-**SmartForm** is an AI-powered government form automation and validation system *(portfolio v1)*.
+**SmartForm** is an AI-powered government form automation and validation system *(portfolio v1.5)*.
 
 It simulates a **CNIC Correction/Renewal** form workflow:
 
@@ -40,16 +40,16 @@ Built entirely with **Django, HTMX, and Python** — no JavaScript frameworks re
 
 ## 2. Tech Stack & Rationale
 
-| Component      | Technology                          | Why                                                  |
-|-----------------|--------------------------------------|-------------------------------------------------------|
-| Backend         | Django 6.x                           | Full-stack framework, great for forms, templates, ORM |
-| Database        | SQLite (dev)                         | Simple to start with; can switch to PostgreSQL later  |
-| Frontend        | Django Templates, Bootstrap 5, HTMX  | Dynamic UI without writing JavaScript                 |
-| AI Assistant    | Ollama `qwen3:1.7b`                  | Lightweight (~1.2 GB), runs on CPU, good instruction-following |
-| OCR Engine      | Tesseract + OpenCV preprocessing     | Free, offline, no GPU required                        |
-| PDF Generation  | WeasyPrint                            | Converts HTML/CSS to PDF in pure Python               |
-| Environment     | pipenv                                | Reproducible builds; virtualenv kept inside project (`.venv/`) |
-| Async           | None (synchronous)                    | All calls happen in-request; acceptable for a demo    |
+| Component      | Technology                          | Why                                                             |
+|-----------------|--------------------------------------|-------------------------------------------------------------------|
+| Backend         | Django 6.x                           | Full-stack framework, great for forms, templates, ORM             |
+| Database        | SQLite (dev)                         | Simple to start with; can switch to PostgreSQL later              |
+| Frontend        | Django Templates, Bootstrap 5, HTMX  | Dynamic UI without writing JavaScript                              |
+| AI Assistant    | Ollama `qwen3:1.7b`                  | Lightweight (~1.2 GB), runs on CPU, good instruction-following     |
+| OCR Engine      | Tesseract + OpenCV preprocessing     | Free, offline, no GPU required                                     |
+| PDF Generation  | WeasyPrint                            | Converts HTML/CSS to PDF in pure Python                            |
+| Environment     | pipenv                                | Reproducible builds; virtualenv kept inside project (`.venv/`)    |
+| Async           | None (synchronous)                    | All calls happen in-request; acceptable for a demo                |
 
 ---
 
@@ -78,7 +78,7 @@ The `Django App` node above is composed of three internal apps:
 | `assistant`      | Chat endpoint, prompt builder                     |
 | `ocr_engine`     | Image preprocessing & extraction pipeline         |
 
-> **Note:** All external calls (Tesseract, Ollama, database, storage, WeasyPrint) are made **synchronously, directly from Django views** — there are no background workers in v1.
+> **Note:** All external calls (Tesseract, Ollama, database, storage, WeasyPrint) are made **synchronously, directly from Django views** — there are no background workers in v1.5.
 
 **Typical latency per request:**
 - Tesseract OCR: ~2–5s
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ### Why this is synchronous (and when that becomes a problem)
 
-Because there's no task queue in v1, the Django worker handling this request is fully blocked for the entire 3-7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
+Because there's no task queue in v1.5, the Django worker handling this request is fully blocked for the entire 3-7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
 
 ---
 
@@ -131,16 +131,20 @@ Because there's no task queue in v1, the Django worker handling this request is 
 
 ```
 smartform/
-├── config/                 # Django project settings
-├── applications/           # Core app (model, forms, views)
-├── assistant/              # AI chat (views, prompts)
-├── ocr_engine/             # OCR extraction (extractor.py, preprocessing.py)
-├── templates/              # Global templates (base.html, partials)
-├── static/css/             # Custom styles
-├── media/id_cards/         # Uploaded CNIC images
-├── system_prompt.txt       # System prompt for the LLM
-├── workflow.md             # This file
-└── README.md               # Project overview
+├── config/                     # Django project settings
+├── applications/               # Core app (model, forms, views)
+│   ├── templatetags/           # Custom template filters (add_class)
+│   └── tests/                  # Test package (test_auth, test_forms, test_pdf)
+├── assistant/                  # AI chat (views, prompts)
+│   └── tests/                  # Test package (test_views)
+├── ocr_engine/                 # OCR extraction (extractor.py, preprocessing.py)
+│   └── tests/                  # Test package (test_views)
+├── templates/                  # Global templates (base.html, landing.html, partials)
+├── static/css/                 # Custom styles
+├── media/id_cards/             # Uploaded CNIC images
+├── system_prompt.txt           # System prompt for the LLM
+├── workflow.md                 # This file
+└── README.md                   # Project overview
 ```
 
 ---
@@ -199,12 +203,13 @@ pipenv run python3 manage.py runserver
 - `feature/ocr-pipeline`
 - `feature/chat-assistant`
 - `feature/pdf-generation`
+- `feature/reorganized-ui` (v1.5)
 
 ---
 
 ## 8. Development Workflow
 
-1. Pick a feature from the [roadmap](#10-roadmap-v1-features--build-order).
+1. Pick a feature from the [roadmap](#10-roadmap-v15-features--build-order).
 2. Create a branch: `git checkout -b feature/<name> develop`
 3. Implement the feature, committing often.
 4. Push the branch and open a pull request into `develop`.
@@ -214,16 +219,18 @@ pipenv run python3 manage.py runserver
 
 ## 9. Key Design Decisions
 
-- **Synchronous OCR & LLM calls** — Keeps the architecture simple for v1. Later versions will add Celery + RabbitMQ.
+- **Synchronous OCR & LLM calls** — Keeps the architecture simple for v1.5. Later versions will add Celery + RabbitMQ.
 - **HTMX over JavaScript** — The developer has no frontend experience; HTMX provides interactivity using pure HTML.
 - **Tesseract instead of a vision LLM** — Lightweight, no GPU needed; custom preprocessing improves accuracy on ID cards.
 - **`qwen3:1.7b`** — Minimal RAM footprint (~2–3 GB), yet capable enough for structured validation and chat.
 - **Models registered in Django admin** — Allows easy inspection of data during development.
-- **Assistant does not persist validation errors** — In v1, chat validation errors are displayed inline via HTMX out-of-band swaps but do not modify the database. This keeps the assistant stateless and avoids accidental overwrites.
+- **Assistant does not persist validation errors** — In v1.5, chat validation errors are displayed inline via HTMX out-of-band swaps but do not modify the database. This keeps the assistant stateless and avoids accidental overwrites.
+- **Custom template filter (`add_class`)** — Applies Bootstrap `form-control` class to all form fields cleanly, without repeating code.
+- **Per-app test packages** — Tests are split into `applications/tests/`, `assistant/tests/`, `ocr_engine/tests/` for modularity and ease of maintenance.
 
 ---
 
-## 10. Roadmap (v1 features – build order)
+## 10. Roadmap (v1.5 features – build order)
 
 - [x] Project scaffold, dependencies, branching, and this document
 - [x] User authentication (Django built-in login/logout/signup)
@@ -234,7 +241,11 @@ pipenv run python3 manage.py runserver
 - [x] Assistant-based validation (`ERROR_FIELD` parsing)
 - [x] Final submission & status tracking (statuses visible, manually advanced)
 - [x] PDF generation (WeasyPrint)
-- [ ] Polish & Docker (future)
+- [x] **UI overhaul & landing page** — forest-green theme, centered forms, responsive design, landing page with hero/features
+- [x] **Test reorganization** — split monolithic tests.py into per-app test packages
+- [x] **Template filter** — `add_class` for Bootstrap styling
+- [ ] Dockerize application (future)
+- [ ] Automatic status workflow (v2)
 
 ---
 
@@ -254,5 +265,5 @@ pipenv run python3 manage.py runserver
 
 ## 12. Future Upgrades (portfolio v2, v3)
 
-- **v2:** Celery + RabbitMQ for background tasks; support for multiple form types
-- **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration
+- **v2:** Celery + RabbitMQ for background tasks; support for multiple form types; improved OCR with layout analysis; automatic status progression.
+- **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration, comprehensive test coverage.

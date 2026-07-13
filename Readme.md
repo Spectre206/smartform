@@ -1,4 +1,3 @@
-```markdown
 # SmartForm — AI-Powered Form Automation & Validation (v1.5)
 
 > 📘 Full project documentation: [workflow.md](workflow.md)
@@ -27,28 +26,28 @@ Everything runs locally — no cloud services, no JavaScript frameworks.
 
 ---
 
-## What’s New in v1.5
+## What's New in v1.5
 
-- **Landing page** – public homepage with hero section, feature cards, and step‑by‑step guide.
-- **Complete UI overhaul** – forest‑green color scheme, centered forms, semantic HTML5 layout.
-- **Responsive design** – mobile‑friendly forms, stacked chat on small screens.
+- **Landing page** – public homepage with hero section, feature cards, and step-by-step guide.
+- **Complete UI overhaul** – forest-green color scheme, centered forms, semantic HTML5 layout.
+- **Responsive design** – mobile-friendly forms, stacked chat on small screens.
 - **Bootstrap 5 styled forms** – all inputs use `form-control`, green buttons, proper labels and error feedback.
-- **Test reorganization** – tests split into per‑app `tests/` packages (`applications/tests/`, `assistant/tests/`, `ocr_engine/tests/`).
+- **Test reorganization** – tests split into per-app `tests/` packages (`applications/tests/`, `assistant/tests/`, `ocr_engine/tests/`).
 - **Custom template filter** – `add_class` filter adds Bootstrap classes to form fields cleanly.
 
 ---
 
 ## Tech Stack
 
-| Component      | Technology                                       |
-|-----------------|---------------------------------------------------|
-| Backend         | Django 6.0 + Django REST Framework (optional)     |
-| Database        | SQLite (dev) / PostgreSQL (prod)                  |
-| Frontend        | Django Templates + Bootstrap 5 + HTMX             |
-| AI Assistant    | Ollama running `qwen3:1.7b` (local, CPU-only)     |
-| OCR Engine      | Tesseract via `pytesseract`, image preprocessing with OpenCV |
-| PDF Generation  | WeasyPrint                                         |
-| Environment     | pipenv                                             |
+| Component      | Technology                                                   |
+|-----------------|----------------------------------------------------------------|
+| Backend         | Django 6.0 + Django REST Framework (optional)                 |
+| Database        | SQLite (dev) / PostgreSQL (prod)                               |
+| Frontend        | Django Templates + Bootstrap 5 + HTMX                          |
+| AI Assistant    | Ollama running `qwen3:1.7b` (local, CPU-only)                 |
+| OCR Engine      | Tesseract via `pytesseract`, image preprocessing with OpenCV   |
+| PDF Generation  | WeasyPrint                                                     |
+| Environment     | pipenv                                                         |
 
 ---
 
@@ -66,13 +65,13 @@ graph TD
     PDF -->|download| Browser
 ```
 
-> ⚠️ All components run **synchronously** inside the Django request‑response cycle. OCR and LLM calls block the user interface for a few seconds. Background workers (Celery) are planned for v2.
+> ⚠️ All components run **synchronously** inside the Django request-response cycle. OCR and LLM calls block the user interface for a few seconds. Background workers (Celery) are planned for v2.
 
 ---
 
 ## Features (v1.5)
 
-- **Landing page** – public‑facing hero, feature cards, and CTA.
+- **Landing page** – public-facing hero, feature cards, and CTA.
 - **User Authentication** – sign up, log in, dashboard with application history.
 - **ID Card OCR** – extract personal information from CNIC images using a custom Tesseract pipeline (works best on clean, machine-printed mock images – see limitations).
 - **Auto-fill Form** – data from OCR automatically populates the application.
@@ -83,7 +82,7 @@ graph TD
 - **Real-time Validation** – inline field validation powered by Django forms + HTMX.
 - **PDF Generation** – generates a filled, official-looking application form for download.
 - **Status Tracking** – visual progress: `Draft → Extracted → Validated → PDF Ready` (currently advanced manually via admin or direct link).
-- **Consistent UI** – forest‑green header/footer, centered forms, Bootstrap 5 styling.
+- **Consistent UI** – forest-green header/footer, centered forms, Bootstrap 5 styling.
 
 ---
 
@@ -107,8 +106,8 @@ This project is the first of three progressively complex versions:
 - Implement proper **status workflow** with automatic validation.
 
 **v3 (Advanced)**
-- Swap Tesseract for a **vision‑language model** (e.g., `minicpm-v` via Ollama) for robust, context‑aware extraction.
-- Build a **REST API** (DRF) for mobile or third‑party integration.
+- Swap Tesseract for a **vision-language model** (e.g., `minicpm-v` via Ollama) for robust, context-aware extraction.
+- Build a **REST API** (DRF) for mobile or third-party integration.
 - Containerize with **Docker Compose** and deploy to a cloud VM.
 - Add **comprehensive unit & integration tests** covering the full pipeline.
 
@@ -125,13 +124,13 @@ smartform/
 ├── applications/            # Core app: form model, views, dashboards
 │   ├── templatetags/        # Custom template filters (add_class)
 │   └── tests/               # Test package (test_auth, test_forms, test_pdf)
-├── assistant/               # AI chat assistant
-│   └── tests/               # Test package (test_views)
-├── ocr_engine/              # Tesseract pipeline
-│   └── tests/               # Test package (test_views)
-├── templates/               # Global templates & partials
-├── static/                  # CSS
-├── media/                   # Uploaded images & generated PDFs
+├── assistant/                # AI chat assistant
+│   └── tests/                # Test package (test_views)
+├── ocr_engine/                # Tesseract pipeline
+│   └── tests/                 # Test package (test_views)
+├── templates/                 # Global templates & partials
+├── static/                    # CSS
+├── media/                     # Uploaded images & generated PDFs
 └── README.md
 ```
 
@@ -190,4 +189,3 @@ Visit **http://localhost:8000**
 ## License
 
 MIT
-```
