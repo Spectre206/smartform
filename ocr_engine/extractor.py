@@ -47,14 +47,24 @@ def extract_cnic_data(image_path):
 
         for i, w in enumerate(words):
             if label in w['text']:
-                # Find the closest word to the right (within 20px vertically)
+                # Find all words to the right (within 30px vertically)
                 candidates = [
                     other for other in words
-                    if other['x'] > w['x'] and abs(other['y'] - w['y']) < 20
+                    if other['x'] > w['x'] and abs(other['y'] - w['y']) < 30
                 ]
                 if candidates:
-                    nearest = min(candidates, key=lambda o: o['x'])
-                    value = nearest['original']
+                    candidates.sort(key=lambda o: o['x'])
+                    # First candidate is the start of the value
+                    value_words = [candidates[0]['original']]
+                    last_x = candidates[0]['x'] + candidates[0]['w']
+                    # Collect following words that are close horizontally
+                    for cand in candidates[1:]:
+                        if cand['x'] - last_x < 40:
+                            value_words.append(cand['original'])
+                            last_x = cand['x'] + cand['w']
+                        else:
+                            break
+                    value = ' '.join(value_words)
                     if regex:
                         match = re.search(regex, value)
                         if match:
@@ -62,20 +72,27 @@ def extract_cnic_data(image_path):
                     extracted[field] = value
                 break
 
-    # Fallback for CNIC number: search whole text
+    # Fallback: search full text for patterns not found via label
+    full_text = ' '.join(w['original'] for w in words)
+
     if not extracted['cnic_number']:
-        full_text = ' '.join(w['original'] for w in words)
         match = re.search(CNIC_TEMPLATE['cnic_number']['regex'], full_text)
         if match:
             extracted['cnic_number'] = match.group().replace('-', '')
 
+    if not extracted['date_of_birth']:
+        match = re.search(r'\b\d{2}[-/]\d{2}[-/]\d{4}\b', full_text)
+        if match:
+            extracted['date_of_birth'] = match.group().replace('/', '-')
+
     # Normalise date
     if extracted['date_of_birth']:
-        date_str = extracted['date_of_birth'].replace('/', '-')
         try:
-            datetime.strptime(date_str, '%d-%m-%Y')
-            extracted['date_of_birth'] = date_str
+            datetime.strptime(extracted['date_of_birth'], '%d-%m-%Y')
         except ValueError:
             extracted['date_of_birth'] = ''
+        # Clean up stray quotes or backticks
+    for key in extracted:
+        extracted[key] = extracted[key].strip("`'‘’\"")
 
     return extracted
