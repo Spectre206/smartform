@@ -47,6 +47,13 @@
                                 <td>
                                     <a href="{% url 'edit_application' app.id %}" class="btn btn-sm btn-outline-success">Edit</a>
                                     <a href="{% url 'generate_pdf' app.id %}" class="btn btn-sm btn-outline-secondary ms-1">PDF</a>
+                                    <form method="post" action="{% url 'delete_application' app.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" 
+                                                onclick="return confirm('Delete this application? This action cannot be undone.');">
+                                            Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}
