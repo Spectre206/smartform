@@ -57,8 +57,6 @@ def edit_application(request, pk):
     if request.method == 'POST':
         form = ApplicationForm(request.POST, instance=application)
         if form.is_valid():
-            if application.status != 'draft':
-                application.status = 'draft'
             form.save()
             messages.success(request, "Application updated.")
             return redirect('dashboard')
