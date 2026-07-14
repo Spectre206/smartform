@@ -68,6 +68,15 @@ def edit_application(request, pk):
         'title': 'Edit Application'
     })
 
+#------- Delete Application -------#
+@login_required
+def delete_application(request, pk):
+    application = get_object_or_404(Application, pk=pk, user=request.user)
+    if request.method == 'POST':
+        application.delete()
+        messages.success(request, "Application deleted successfully.")
+    return redirect('dashboard')
+
 @login_required
 def upload_cnic(request, pk):
     application = get_object_or_404(Application, pk=pk, user=request.user)
