@@ -48,17 +48,18 @@ def extract_cnic_data(image_path):
         for i, w in enumerate(words):
             if label in w['text']:
                 # Find all words to the right (within 30px vertically)
-                candidates = [
+                                # Only consider words on the SAME line (vertical diff < 10)
+                same_line = [
                     other for other in words
-                    if other['x'] > w['x'] and abs(other['y'] - w['y']) < 30
+                    if abs(other['y'] - w['y']) < 10 and other['x'] > w['x']
                 ]
-                if candidates:
-                    candidates.sort(key=lambda o: o['x'])
-                    # First candidate is the start of the value
-                    value_words = [candidates[0]['original']]
-                    last_x = candidates[0]['x'] + candidates[0]['w']
-                    # Collect following words that are close horizontally
-                    for cand in candidates[1:]:
+                if same_line:
+                    same_line.sort(key=lambda o: o['x'])
+                    # First candidate starts the value
+                    value_words = [same_line[0]['original']]
+                    last_x = same_line[0]['x'] + same_line[0]['w']
+                    # Collect following words horizontally close
+                    for cand in same_line[1:]:
                         if cand['x'] - last_x < 40:
                             value_words.append(cand['original'])
                             last_x = cand['x'] + cand['w']
