@@ -11,6 +11,8 @@ pytesseract = "*"
 ollama = "*"
 weasyprint = "*"
 pillow = "*"
+celery = "*"
+redis = "*"
 
 [dev-packages]
 
