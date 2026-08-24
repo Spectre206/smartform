@@ -1,4 +1,4 @@
-# 🧾 SmartForm — Project & Workflow Guide (v1.5)
+# 🧾 SmartForm — Project & Workflow Guide (v1.6)
 
 > **Purpose:** A complete reference for the SmartForm project — architecture, tech stack, branching strategy, development workflow, and troubleshooting.
 > **Goal:** Any developer (or AI assistant) should be able to read this document and immediately know how to work on the project.
@@ -16,7 +16,7 @@
 7. [Branching Strategy](#7-branching-strategy)
 8. [Development Workflow](#8-development-workflow)
 9. [Key Design Decisions](#9-key-design-decisions)
-10. [Roadmap (v1.5)](#10-roadmap-v15-features--build-order)
+10. [Roadmap (v1.6)](#10-roadmap-v16-features--build-order)
 11. [Troubleshooting & Common Pitfalls](#11-troubleshooting--common-pitfalls)
 12. [Future Upgrades](#12-future-upgrades-portfolio-v2-v3)
 
@@ -24,12 +24,12 @@
 
 ## 1. Project Overview
 
-**SmartForm** is an AI-powered government form automation and validation system *(portfolio v1.5)*.
+**SmartForm** is an AI-powered **form automation and validation system** *(portfolio v1.6)*.
 
-It simulates a **CNIC Correction/Renewal** form workflow:
+It currently focuses on a **CNIC Correction/Renewal** workflow, but is designed to be extended to other structured forms later.
 
-1. A citizen uploads a photo of their national ID card.
-2. Data is extracted via **Tesseract OCR**.
+1. A user uploads a photo of an ID card.
+2. Data is extracted via **Tesseract OCR** (with preprocessing).
 3. The form is auto-filled.
 4. A local **AI assistant (LLM)** validates the form and answers questions.
 5. A completed **PDF** is generated for download.
@@ -49,13 +49,15 @@ Built entirely with **Django, HTMX, and Python** — no JavaScript frameworks re
 | OCR Engine      | Tesseract + OpenCV preprocessing     | Free, offline, no GPU required                                     |
 | PDF Generation  | WeasyPrint                            | Converts HTML/CSS to PDF in pure Python                            |
 | Environment     | pipenv                                | Reproducible builds; virtualenv kept inside project (`.venv/`)    |
-| Async           | None (synchronous)                    | All calls happen in-request; acceptable for a demo                |
+| Async (current) | None (synchronous)                    | All calls happen in-request; acceptable for a demo                |
+| **Async (v2)**  | **Celery + Redis**                    | Background tasks for OCR, LLM calls, and PDF generation           |
+| **Primary OCR (v2)** | **Gemini API (free tier)**         | Robust extraction for primary data; Tesseract as secondary verification |
 
 ---
 
 ## 3. System Architecture
 
-### High-Level Data Flow
+### High-Level Data Flow (v1.6 – synchronous)
 
 ```mermaid
 graph TD
@@ -78,9 +80,10 @@ The `Django App` node above is composed of three internal apps:
 | `assistant`      | Chat endpoint, prompt builder                     |
 | `ocr_engine`     | Image preprocessing & extraction pipeline         |
 
-> **Note:** All external calls (Tesseract, Ollama, database, storage, WeasyPrint) are made **synchronously, directly from Django views** — there are no background workers in v1.5.
+> **Note (v1.6):** All external calls (Tesseract, Ollama, database, storage, WeasyPrint) are made **synchronously, directly from Django views**.
+> **Planned v2:** OCR, LLM, and PDF generation will be moved to **Celery tasks**, with Redis as the broker.
 
-**Typical latency per request:**
+**Typical latency per request (current):**
 - Tesseract OCR: ~2–5s
 - Ollama LLM API (`localhost:11434`): ~3–7s
 
@@ -123,7 +126,7 @@ sequenceDiagram
 
 ### Why this is synchronous (and when that becomes a problem)
 
-Because there's no task queue in v1.5, the Django worker handling this request is fully blocked for the entire 3-7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for Celery + RabbitMQ in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
+Because there's no task queue in v1.6, the Django worker handling this request is fully blocked for the entire 3-7s inference window. For a single user testing locally, this is invisible. Under concurrent load, though, every simultaneous chat message ties up a worker for several seconds — this is exactly why [Future Upgrades](#12-future-upgrades-portfolio-v2-v3) calls for **Celery + Redis** in v2: it lets the LLM call run in the background and the browser poll or get pushed the result, instead of holding the HTTP connection open the whole time.
 
 ---
 
@@ -134,11 +137,11 @@ smartform/
 ├── config/                     # Django project settings
 ├── applications/               # Core app (model, forms, views)
 │   ├── templatetags/           # Custom template filters (add_class)
-│   └── tests/                  # Test package (test_auth, test_forms, test_pdf)
+│   └── tests/                  # Test package (test_auth, test_forms, test_pdf, test_views)
 ├── assistant/                  # AI chat (views, prompts)
 │   └── tests/                  # Test package (test_views)
 ├── ocr_engine/                 # OCR extraction (extractor.py, preprocessing.py)
-│   └── tests/                  # Test package (test_views)
+│   └── tests/                  # Test package (test_views, test_extractor)
 ├── templates/                  # Global templates (base.html, landing.html, partials)
 ├── static/css/                 # Custom styles
 ├── media/id_cards/             # Uploaded CNIC images
@@ -204,12 +207,13 @@ pipenv run python3 manage.py runserver
 - `feature/chat-assistant`
 - `feature/pdf-generation`
 - `feature/reorganized-ui` (v1.5)
+- `feature/delete-application` (v1.6)
 
 ---
 
 ## 8. Development Workflow
 
-1. Pick a feature from the [roadmap](#10-roadmap-v15-features--build-order).
+1. Pick a feature from the [roadmap](#10-roadmap-v16-features--build-order).
 2. Create a branch: `git checkout -b feature/<name> develop`
 3. Implement the feature, committing often.
 4. Push the branch and open a pull request into `develop`.
@@ -219,18 +223,19 @@ pipenv run python3 manage.py runserver
 
 ## 9. Key Design Decisions
 
-- **Synchronous OCR & LLM calls** — Keeps the architecture simple for v1.5. Later versions will add Celery + RabbitMQ.
+- **Synchronous OCR & LLM calls (current)** — Keeps the architecture simple for v1.6. Will be replaced by Celery + Redis in v2.
 - **HTMX over JavaScript** — The developer has no frontend experience; HTMX provides interactivity using pure HTML.
-- **Tesseract instead of a vision LLM** — Lightweight, no GPU needed; custom preprocessing improves accuracy on ID cards.
+- **Tesseract instead of a vision LLM (current)** — Lightweight, no GPU needed; custom preprocessing improves accuracy on ID cards.
 - **`qwen3:1.7b`** — Minimal RAM footprint (~2–3 GB), yet capable enough for structured validation and chat.
 - **Models registered in Django admin** — Allows easy inspection of data during development.
-- **Assistant does not persist validation errors** — In v1.5, chat validation errors are displayed inline via HTMX out-of-band swaps but do not modify the database. This keeps the assistant stateless and avoids accidental overwrites.
+- **Assistant does not persist validation errors** — In v1.6, chat validation errors are displayed inline via HTMX out-of-band swaps but do not modify the database. This keeps the assistant stateless and avoids accidental overwrites.
 - **Custom template filter (`add_class`)** — Applies Bootstrap `form-control` class to all form fields cleanly, without repeating code.
 - **Per-app test packages** — Tests are split into `applications/tests/`, `assistant/tests/`, `ocr_engine/tests/` for modularity and ease of maintenance.
+- **Delete application with POST** — Ensures destructive actions are not triggered by simple GET requests.
 
 ---
 
-## 10. Roadmap (v1.5 features – build order)
+## 10. Roadmap (v1.6 features – build order)
 
 - [x] Project scaffold, dependencies, branching, and this document
 - [x] User authentication (Django built-in login/logout/signup)
@@ -239,13 +244,19 @@ pipenv run python3 manage.py runserver
 - [x] OCR extraction pipeline → auto-fill form
 - [x] AI assistant chat (HTMX)
 - [x] Assistant-based validation (`ERROR_FIELD` parsing)
-- [x] Final submission & status tracking (statuses visible, manually advanced)
+- [x] Final submission & status tracking (statuses visible)
 - [x] PDF generation (WeasyPrint)
-- [x] **UI overhaul & landing page** — forest-green theme, centered forms, responsive design, landing page with hero/features
-- [x] **Test reorganization** — split monolithic tests.py into per-app test packages
-- [x] **Template filter** — `add_class` for Bootstrap styling
+- [x] UI overhaul & landing page
+- [x] Test reorganization
+- [x] Template filter `add_class`
+- [x] Delete application with confirmation
+- [x] **Improved OCR extraction** — line‑level bounding boxes, multi-word values, date fallback
+- [x] **Status preservation on save** — editing no longer resets status to Draft
+- [x] **Automatic status progression** — upload → Extracted; Validate → Validated
 - [ ] Dockerize application (future)
-- [ ] Automatic status workflow (v2)
+- [ ] Celery + Redis background processing (v2)
+- [ ] Gemini API integration (v2)
+- [ ] Fully automatic status flow (v2)
 
 ---
 
@@ -260,10 +271,24 @@ pipenv run python3 manage.py runserver
 | HTMX not triggering                             | Check that the CDN script is loaded in `base.html` and the endpoint returns HTML, not a redirect |
 | Migrations fail                                 | Delete `db.sqlite3` and the `migrations/` folders inside apps (except `__init__.py`), then re-run `makemigrations` and `migrate` |
 | Virtualenv created in wrong location (Snap VS Code) | Run `pipenv install` inside the project directory to create a local `.venv`               |
+| OCR returns empty or wrong data                 | Use the mock CNIC generator (`generate_mock_cnic.py`) and ensure the image is clear. Debug with a temporary `print` of detected words. |
 
 ---
 
 ## 12. Future Upgrades (portfolio v2, v3)
 
-- **v2:** Celery + RabbitMQ for background tasks; support for multiple form types; improved OCR with layout analysis; automatic status progression.
-- **v3:** Vision LLM for OCR (e.g., `minicpm-v`), REST API, container orchestration, comprehensive test coverage.
+### **v2 (Next Phase)**
+- **Asynchronous Processing** – Replace synchronous calls with **Celery + Redis** for OCR, LLM, and PDF tasks.
+- **Primary Data Extraction with Gemini API** – Use Gemini (free tier) for primary extraction from uploaded ID images; **Tesseract remains as secondary verification** on more complex mock CNICs.
+- **Fully Automatic Status Flow** – After upload, a background task sets `Extracted`; after validation, it sets `Validated` without user clicks.
+- **No Multiple Forms Yet** – Focus on perfecting the single CNIC workflow before expanding.
+
+### **v3 (Advanced)**
+- **Vision‑Language Model for OCR** – Replace Tesseract with a local vision model (e.g., `minicpm-v` via Ollama) for robust, context‑aware extraction.
+- **REST API** – Build a DRF API for mobile or third‑party integration.
+- **Containerization** – Docker Compose for easy deployment.
+- **Comprehensive integration tests** covering the full asynchronous pipeline.
+
+---
+
+*Maintained by Spectre206 – Portfolio Project*

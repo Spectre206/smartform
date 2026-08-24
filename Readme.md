@@ -1,8 +1,9 @@
-# SmartForm — AI-Powered Form Automation & Validation (v1.5)
+# SmartForm — AI-Powered Form Automation & Validation (v1.6)
 
 > 📘 Full project documentation: [workflow.md](workflow.md)
+> 🔗 **GitHub Repository:** [https://github.com/Spectre206/smartform](https://github.com/Spectre206/smartform)
 
-A web application that automates the completion of government forms (CNIC correction/renewal) by extracting data from uploaded ID cards using **Tesseract OCR**, auto-filling forms, and providing an **AI assistant** (powered by a local LLM via Ollama) that validates entries, answers questions, and detects errors. Built entirely with Django, HTMX, and Python — no JavaScript required.
+A web application that automates the completion of **structured forms** (starting with CNIC correction) by extracting data from uploaded ID cards using **Tesseract OCR**, auto-filling forms, and providing an **AI assistant** (powered by a local LLM via Ollama) that validates entries, answers questions, and detects errors. Built entirely with Django, HTMX, and Python — no JavaScript required.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![Django](https://img.shields.io/badge/django-6.0-green.svg)
@@ -14,10 +15,10 @@ A web application that automates the completion of government forms (CNIC correc
 
 ## Overview
 
-**SmartForm** is a **simulated** government form automation system. No real NADRA or government APIs are connected. It demonstrates how AI and OCR can simplify form filling.
+**SmartForm** is a **standalone form automation system** – no external APIs are connected. It demonstrates how AI and OCR can simplify filling structured forms.
 
-1. **Upload** a photo of your CNIC (National ID card).
-2. **Extract** name, father's name, CNIC number, and date of birth using custom OCR (Tesseract + OpenCV).
+1. **Upload** a photo of an ID card (e.g., CNIC).
+2. **Extract** name, father's name, ID number, and date of birth using a custom OCR pipeline (Tesseract + OpenCV).
 3. **Auto-fill** the application form.
 4. **Chat** with an AI assistant that explains fields, checks for missing data, and highlights errors.
 5. **Download** a ready-to-submit PDF.
@@ -26,14 +27,13 @@ Everything runs locally — no cloud services, no JavaScript frameworks.
 
 ---
 
-## What's New in v1.5
+## What's New in v1.6
 
-- **Landing page** – public homepage with hero section, feature cards, and step-by-step guide.
-- **Complete UI overhaul** – forest-green color scheme, centered forms, semantic HTML5 layout.
-- **Responsive design** – mobile-friendly forms, stacked chat on small screens.
-- **Bootstrap 5 styled forms** – all inputs use `form-control`, green buttons, proper labels and error feedback.
-- **Test reorganization** – tests split into per-app `tests/` packages (`applications/tests/`, `assistant/tests/`, `ocr_engine/tests/`).
-- **Custom template filter** – `add_class` filter adds Bootstrap classes to form fields cleanly.
+- **Delete Application** – users can now delete their applications from the dashboard with a confirmation dialog.
+- **Improved OCR extraction** – the Tesseract pipeline now uses line‑level bounding‑box data to extract multi‑word values correctly (e.g., "Ali Khan" instead of just "Ali").
+- **Status preservation** – saving an application no longer resets its status to "Draft". The status now flows logically: `Draft → Extracted → Validated → PDF Ready`.
+- **Enhanced test coverage** – added tests for delete functionality, OCR extractor, and validation views. Total: 18 passing tests.
+- **Cleaner repository** – stale remote branches removed; local branches reduced to `main` and `develop`.
 
 ---
 
@@ -65,51 +65,54 @@ graph TD
     PDF -->|download| Browser
 ```
 
-> ⚠️ All components run **synchronously** inside the Django request-response cycle. OCR and LLM calls block the user interface for a few seconds. Background workers (Celery) are planned for v2.
+> ⚠️ **Current (v1.6)**: All components run **synchronously** inside the Django request‑response cycle. OCR and LLM calls block the user interface for a few seconds.
+> **Planned for v2**: Replace synchronous calls with **Celery + Redis** background tasks for a fully asynchronous experience.
 
 ---
 
-## Features (v1.5)
+## Features (v1.6)
 
-- **Landing page** – public-facing hero, feature cards, and CTA.
+- **Landing page** – public‑facing hero, feature cards, and CTA.
 - **User Authentication** – sign up, log in, dashboard with application history.
-- **ID Card OCR** – extract personal information from CNIC images using a custom Tesseract pipeline (works best on clean, machine-printed mock images – see limitations).
+- **ID Card OCR** – extract personal information from CNIC images using a custom Tesseract pipeline (bounding‑box based, works well on clean mock images).
 - **Auto-fill Form** – data from OCR automatically populates the application.
 - **AI Assistant (Chat)** – interactive chat widget (HTMX) that:
   - Explains form fields & required documents.
   - Checks the form for errors and missing data.
   - Highlights specific fields with error messages.
 - **Real-time Validation** – inline field validation powered by Django forms + HTMX.
-- **PDF Generation** – generates a filled, official-looking application form for download.
-- **Status Tracking** – visual progress: `Draft → Extracted → Validated → PDF Ready` (currently advanced manually via admin or direct link).
-- **Consistent UI** – forest-green header/footer, centered forms, Bootstrap 5 styling.
+- **PDF Generation** – generates a filled, official‑looking application form for download.
+- **Status Tracking** – visual progress: `Draft → Extracted → Validated → PDF Ready`.
+  - After uploading an ID, status automatically becomes `Extracted`.
+  - A **Validate** button runs the AI assistant; if no errors, status becomes `Validated`.
+  - Generating a PDF sets status to `PDF Ready`.
+- **Delete Application** – remove applications directly from the dashboard.
+- **Consistent UI** – forest‑green header/footer, centered forms, Bootstrap 5 styling.
 
 ---
 
-## Current Limitations (honest for v1.5)
+## Current Limitations (v1.6)
 
-- **OCR Accuracy:** The Tesseract pipeline uses simple rules and does not always extract data correctly from real CNIC photos. For demos, use the provided mock CNIC generator.
-- **Synchronous Processing:** OCR and AI assistant calls run inside the request/response cycle, making the UI wait (up to a few seconds). Background workers (Celery) are planned for v2.
+- **OCR Accuracy:** The Tesseract pipeline works best on clean, machine‑printed mock images. Real‑world ID cards with complex backgrounds may not extract perfectly.
+- **Synchronous Processing:** OCR and AI assistant calls run inside the request/response cycle, making the UI wait (up to a few seconds). Background workers are planned for v2.
 - **Small AI Model:** The assistant uses `qwen3:1.7b`. It is fast but may occasionally produce incomplete answers. A larger model would improve quality.
-- **Manual Status Flow:** The form status must be changed manually (via admin) to `validated` before a PDF can be generated. A proper automatic validation workflow will be added later.
+- **Manual Trigger for Validation:** The user must click "Validate" to check the form. In v2, validation will be automatic.
 
 ---
 
 ## Future Roadmap (Portfolio v2 & v3)
 
-This project is the first of three progressively complex versions:
+### v2 (Next Phase)
+- **Asynchronous Processing** – integrate **Celery + Redis** so OCR and AI validation run in the background, making the UI responsive.
+- **Primary Data Extraction with Gemini API** – use Gemini (free tier) for primary extraction from uploaded ID images, with **Tesseract as secondary verification** on more complex mock CNICs.
+- **Fully Automatic Status Flow** – the status will progress automatically without user intervention (e.g., after upload, background task sets `Extracted`; after validation, sets `Validated`).
+- **No Multiple Forms Yet** – focus on perfecting the single CNIC workflow before expanding.
 
-**v2 (Medium Complexity)**
-- Replace synchronous calls with **Celery + RabbitMQ** for background OCR and AI processing.
-- Add **multiple government forms** (domicile, vehicle registration, etc.).
-- Improve OCR with better image preprocessing and layout analysis.
-- Implement proper **status workflow** with automatic validation.
-
-**v3 (Advanced)**
-- Swap Tesseract for a **vision-language model** (e.g., `minicpm-v` via Ollama) for robust, context-aware extraction.
-- Build a **REST API** (DRF) for mobile or third-party integration.
+### v3 (Advanced)
+- Replace Tesseract with a **vision‑language model** (e.g., `minicpm-v` via Ollama) for robust, context‑aware extraction.
+- Build a **REST API** (DRF) for mobile or third‑party integration.
 - Containerize with **Docker Compose** and deploy to a cloud VM.
-- Add **comprehensive unit & integration tests** covering the full pipeline.
+- Add **comprehensive integration tests** covering the full asynchronous pipeline.
 
 ---
 
@@ -123,11 +126,11 @@ smartform/
 ├── config/                  # Django project settings
 ├── applications/            # Core app: form model, views, dashboards
 │   ├── templatetags/        # Custom template filters (add_class)
-│   └── tests/               # Test package (test_auth, test_forms, test_pdf)
+│   └── tests/               # Test package (test_auth, test_forms, test_pdf, test_views)
 ├── assistant/                # AI chat assistant
 │   └── tests/                # Test package (test_views)
 ├── ocr_engine/                # Tesseract pipeline
-│   └── tests/                 # Test package (test_views)
+│   └── tests/                 # Test package (test_views, test_extractor)
 ├── templates/                 # Global templates & partials
 ├── static/                    # CSS
 ├── media/                     # Uploaded images & generated PDFs
@@ -164,7 +167,7 @@ ollama pull qwen3:1.7b
 ### Clone & Setup Environment
 
 ```bash
-git clone <your-repo-url> smartform
+git clone https://github.com/Spectre206/smartform.git
 cd smartform
 pipenv install
 ```
