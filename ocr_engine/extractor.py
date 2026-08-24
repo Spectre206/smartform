@@ -3,8 +3,9 @@ import pytesseract
 import re
 from datetime import datetime
 from .preprocessing import preprocess_image
+from .gemini import extract_with_gemini
 
-# Extraction template for CNIC
+# Extraction template for CNIC (used by Tesseract fallback)
 CNIC_TEMPLATE = {
     "full_name": {"label": "name", "direction": "right"},
     "father_name": {"label": "father", "direction": "right"},
@@ -13,7 +14,7 @@ CNIC_TEMPLATE = {
                       "regex": r"\b\d{2}[-/]\d{2}[-/]\d{4}\b"},
 }
 
-def extract_cnic_data(image_path):
+def extract_with_tesseract(image_path):
     processed = preprocess_image(image_path)
     if processed is None:
         return {}
@@ -25,7 +26,6 @@ def extract_cnic_data(image_path):
         output_type=pytesseract.Output.DICT
     )
 
-    # Build list of words with coordinates
     words = []
     for i in range(len(data['text'])):
         text = data['text'][i].strip()
@@ -47,18 +47,14 @@ def extract_cnic_data(image_path):
 
         for i, w in enumerate(words):
             if label in w['text']:
-                # Find all words to the right (within 30px vertically)
-                                # Only consider words on the SAME line (vertical diff < 10)
                 same_line = [
                     other for other in words
                     if abs(other['y'] - w['y']) < 10 and other['x'] > w['x']
                 ]
                 if same_line:
                     same_line.sort(key=lambda o: o['x'])
-                    # First candidate starts the value
                     value_words = [same_line[0]['original']]
                     last_x = same_line[0]['x'] + same_line[0]['w']
-                    # Collect following words horizontally close
                     for cand in same_line[1:]:
                         if cand['x'] - last_x < 40:
                             value_words.append(cand['original'])
@@ -73,7 +69,6 @@ def extract_cnic_data(image_path):
                     extracted[field] = value
                 break
 
-    # Fallback: search full text for patterns not found via label
     full_text = ' '.join(w['original'] for w in words)
 
     if not extracted['cnic_number']:
@@ -86,14 +81,28 @@ def extract_cnic_data(image_path):
         if match:
             extracted['date_of_birth'] = match.group().replace('/', '-')
 
-    # Normalise date
     if extracted['date_of_birth']:
         try:
             datetime.strptime(extracted['date_of_birth'], '%d-%m-%Y')
         except ValueError:
             extracted['date_of_birth'] = ''
-        # Clean up stray quotes or backticks
+
     for key in extracted:
         extracted[key] = extracted[key].strip("`'‘’\"")
 
     return extracted
+
+def extract_cnic_data(image_path):
+    """
+    Primary: Gemini API extraction.
+    Fallback: Tesseract (if Gemini fails or returns empty).
+    """
+    gemini_data = extract_with_gemini(image_path)
+    if gemini_data:
+        # Ensure all keys exist, even if empty
+        for key in CNIC_TEMPLATE:
+            if key not in gemini_data:
+                gemini_data[key] = ''
+        return gemini_data
+
+    return extract_with_tesseract(image_path)
