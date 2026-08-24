@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from applications.models import Application
+from unittest.mock import patch
 
 class ApplicationFormTests(TestCase):
     def setUp(self):
@@ -66,3 +67,36 @@ class ApplicationFormTests(TestCase):
         response = self.client.get(reverse('dashboard'))
         self.assertContains(response, 'Ali')
         self.assertContains(response, 'Draft')
+
+class ValidationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('valuser', password='testpass123!')
+        self.client.login(username='valuser', password='testpass123!')
+        self.app = Application.objects.create(
+            user=self.user,
+            full_name='Ali',
+            father_name='Ahmed',
+            cnic_number='1234567890123',
+            date_of_birth='1995-01-15',
+            address='123 Main St',
+            city='Lahore',
+            reason='Correction',
+            status='extracted'
+        )
+
+    @patch('assistant.views.call_ollama')
+    def test_validate_success(self, mock_ollama):
+        mock_ollama.return_value = "The form looks good."  # no ERROR_FIELD
+        response = self.client.post(reverse('validate_application', args=[self.app.pk]))
+        self.assertRedirects(response, reverse('edit_application', args=[self.app.pk]))
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.status, 'validated')
+
+    @patch('assistant.views.call_ollama')
+    def test_validate_with_errors(self, mock_ollama):
+        mock_ollama.return_value = "ERROR_FIELD:address:Address must be complete."
+        response = self.client.post(reverse('validate_application', args=[self.app.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.status, 'extracted')  # unchanged
+        self.assertContains(response, "Address must be complete")

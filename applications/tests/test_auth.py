@@ -35,4 +35,4 @@ class AuthTests(TestCase):
 
     def test_dashboard_requires_login(self):
         response = self.client.get(reverse('dashboard'))
-        self.assertRedirects(response, '/login/?next=/')
+        self.assertRedirects(response, '/login/?next=/dashboard/')
