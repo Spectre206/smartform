@@ -1,0 +1,7 @@
+<span class="badge 
+    {% if application.status == 'draft' %}bg-secondary
+    {% elif application.status == 'extracted' %}bg-info
+    {% elif application.status == 'validated' %}bg-success
+    {% else %}bg-dark{% endif %}">
+    {{ application.get_status_display }}
+</span>

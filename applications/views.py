@@ -11,7 +11,8 @@ from django.contrib import messages
 from .models import Application
 from .forms import ApplicationForm, ImageUploadForm
 from ocr_engine.extractor import extract_cnic_data
-from .tasks import sample_task
+from .tasks import process_application
+
 
 
 def landing(request):
@@ -89,8 +90,7 @@ def upload_cnic(request, pk):
             application.save()
 
             # Enqueue background task (Celery) instead of processing synchronously
-            from .tasks import sample_task   # already imported at top, but here for clarity
-            sample_task.delay(application.pk)
+            process_application.delay(application.pk)
 
             messages.info(request, "Your CNIC is being processed. Status will update shortly.")
             return redirect('edit_application', pk=application.pk)
@@ -208,3 +208,10 @@ def validate_application(request, pk):
             return redirect('edit_application', pk=application.pk)
 
     return redirect('edit_application', pk=application.pk)
+
+
+
+@login_required
+def application_status(request, pk):
+    application = get_object_or_404(Application, pk=pk, user=request.user)
+    return render(request, 'partials/status_badge.html', {'application': application})

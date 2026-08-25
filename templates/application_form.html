@@ -10,13 +10,21 @@
     <!-- Status & Upload info (only when editing) -->
     {% if application %}
     <div class="text-center mb-4">
-        <p><strong>Status:</strong> <span class="badge 
-            {% if application.status == 'draft' %}bg-secondary
-            {% elif application.status == 'extracted' %}bg-info
-            {% elif application.status == 'validated' %}bg-success
-            {% else %}bg-dark{% endif %}">
-            {{ application.get_status_display }}
-        </span></p>
+        <p>
+            <strong>Status:</strong>
+            <span id="status-badge"
+                  hx-get="{% url 'application_status' application.pk %}"
+                  hx-trigger="load, every 2s"
+                  hx-swap="innerHTML">
+                <span class="badge 
+                    {% if application.status == 'draft' %}bg-secondary
+                    {% elif application.status == 'extracted' %}bg-info
+                    {% elif application.status == 'validated' %}bg-success
+                    {% else %}bg-dark{% endif %}">
+                    {{ application.get_status_display }}
+                </span>
+            </span>
+        </p>
 
         {% if application.id_card_image %}
             <p>Current CNIC: <a href="{{ application.id_card_image.url }}" target="_blank">View</a></p>
@@ -26,7 +34,7 @@
             </p>
         {% endif %}
 
-        <!-- Validate button – only when extracted -->
+        <!-- Validate button – only when extracted (redundant in auto flow, but kept for manual override) -->
         {% if application.status == 'extracted' %}
         <form method="post" action="{% url 'validate_application' application.pk %}" style="display:inline;">
             {% csrf_token %}
