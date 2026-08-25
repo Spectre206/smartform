@@ -18,15 +18,9 @@ class OCRUploadTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'upload_cnic.html')
 
-    @patch('applications.views.extract_cnic_data')
-    def test_upload_and_extract(self, mock_extract):
-        mock_extract.return_value = {
-            'full_name': 'Test Name',
-            'father_name': 'Father Name',
-            'cnic_number': '1234567890123',
-            'date_of_birth': '15-01-1995',
-        }
-
+    @patch('applications.views.process_application.delay')
+    def test_upload_and_extract(self, mock_delay):
+        # Create a real tiny JPEG image
         img = Image.new('RGB', (1, 1), color='red')
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr, format='JPEG')
@@ -43,9 +37,12 @@ class OCRUploadTests(TestCase):
             {'image': image}
         )
 
+        # Check redirect
         self.assertRedirects(response, reverse('edit_application', args=[self.app.pk]))
+
+        # Check the background task was enqueued with correct application ID
+        mock_delay.assert_called_once_with(self.app.pk)
+
+        # The application should still be in draft state (no synchronous extraction)
         self.app.refresh_from_db()
-        self.assertEqual(self.app.full_name, 'Test Name')
-        self.assertEqual(self.app.cnic_number, '1234567890123')
-        self.assertEqual(self.app.date_of_birth.strftime('%Y-%m-%d'), '1995-01-15')
-        self.assertEqual(self.app.status, 'extracted')
+        self.assertEqual(self.app.status, 'draft')
