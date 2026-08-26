@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from .preprocessing import preprocess_image
 
+
 # Extraction template for CNIC
 CNIC_TEMPLATE = {
     "full_name": {"label": "name", "direction": "right"},
@@ -11,9 +12,12 @@ CNIC_TEMPLATE = {
     "cnic_number": {"label": "cnic", "direction": "right", "regex": r"\b\d{5}-?\d{7}-?\d\b|\b\d{13}\b"},
     "date_of_birth": {"label": "birth", "direction": "right",
                       "regex": r"\b\d{2}[-/]\d{2}[-/]\d{4}\b"},
+    "address": {"label": "address", "direction": "right"},
+    "city": {"label": "city", "direction": "right"},
 }
 
-def extract_cnic_data(image_path):
+
+def extract_with_tesseract(image_path):
     processed = preprocess_image(image_path)
     if processed is None:
         return {}
@@ -25,7 +29,6 @@ def extract_cnic_data(image_path):
         output_type=pytesseract.Output.DICT
     )
 
-    # Build list of words with coordinates
     words = []
     for i in range(len(data['text'])):
         text = data['text'][i].strip()
@@ -46,19 +49,16 @@ def extract_cnic_data(image_path):
         regex = config.get('regex', None)
 
         for i, w in enumerate(words):
-            if label in w['text']:
-                # Find all words to the right (within 30px vertically)
-                                # Only consider words on the SAME line (vertical diff < 10)
+            # Match label: check if word equals label or starts with label and ends with colon
+            if w['text'] == label or (w['text'].startswith(label) and w['text'].endswith(':')):
                 same_line = [
                     other for other in words
                     if abs(other['y'] - w['y']) < 10 and other['x'] > w['x']
                 ]
                 if same_line:
                     same_line.sort(key=lambda o: o['x'])
-                    # First candidate starts the value
                     value_words = [same_line[0]['original']]
                     last_x = same_line[0]['x'] + same_line[0]['w']
-                    # Collect following words horizontally close
                     for cand in same_line[1:]:
                         if cand['x'] - last_x < 40:
                             value_words.append(cand['original'])
@@ -66,6 +66,10 @@ def extract_cnic_data(image_path):
                         else:
                             break
                     value = ' '.join(value_words)
+                    # Clean up strays: colons, periods, commas
+                    value = value.replace(':', ' ').replace('.', ' ').replace(',', ' ')
+                    value = value.strip()
+                    value = re.sub(r'\s+', ' ', value)   # collapse multiple spaces
                     if regex:
                         match = re.search(regex, value)
                         if match:
@@ -73,7 +77,6 @@ def extract_cnic_data(image_path):
                     extracted[field] = value
                 break
 
-    # Fallback: search full text for patterns not found via label
     full_text = ' '.join(w['original'] for w in words)
 
     if not extracted['cnic_number']:
@@ -86,14 +89,21 @@ def extract_cnic_data(image_path):
         if match:
             extracted['date_of_birth'] = match.group().replace('/', '-')
 
-    # Normalise date
     if extracted['date_of_birth']:
         try:
             datetime.strptime(extracted['date_of_birth'], '%d-%m-%Y')
         except ValueError:
             extracted['date_of_birth'] = ''
-        # Clean up stray quotes or backticks
+
+    # Final cleanup: remove any remaining punctuation at ends
     for key in extracted:
-        extracted[key] = extracted[key].strip("`'‘’\"")
+        extracted[key] = extracted[key].strip("`'‘’\" ,.")
 
     return extracted
+
+
+def extract_cnic_data(image_path):
+    """
+    Use Tesseract only (Gemini removed).
+    """
+    return extract_with_tesseract(image_path)

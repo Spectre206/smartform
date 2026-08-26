@@ -14,4 +14,5 @@ urlpatterns = [
     path('application/<int:pk>/delete/', views.delete_application, name='delete_application'),
     path('application/<int:pk>/pdf/', views.generate_pdf, name='generate_pdf'),
     path('application/<int:pk>/validate/', views.validate_application, name='validate_application'),
+    path('application/<int:pk>/status/', views.application_status, name='application_status'),
 ]
