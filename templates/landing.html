@@ -6,11 +6,11 @@
 <!-- Hero Section -->
 <section class="py-5 bg-light">
     <div class="container text-center">
-        <h1 class="display-4 fw-bold text-forest" style="color: var(--forest-green);">
-            Automate Your Government Forms with AI
+        <h1 class="display-4 fw-bold" style="color: var(--forest-green);">
+            Automate Your Forms with AI
         </h1>
         <p class="lead text-muted">
-            Upload your ID card, let our AI assistant fill the form, validate the data, and download a ready‑to‑submit PDF — all without typing a single word.
+            Upload an ID card, and SmartForm extracts, validates, and fills your form <strong>in the background</strong> — no typing needed.
         </p>
         <div class="mt-4">
             <a href="{% url 'signup' %}" class="btn btn-forest btn-lg px-4 me-2">
@@ -19,6 +19,11 @@
             <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg px-4">
                 Login
             </a>
+        </div>
+        <div class="mt-3">
+            <span class="badge bg-success">⚡ Asynchronous processing</span>
+            <span class="badge bg-success ms-2">📄 OCR extraction</span>
+            <span class="badge bg-success ms-2">🤖 AI validation</span>
         </div>
     </div>
 </section>
@@ -31,9 +36,9 @@
                 <div class="card h-100 border-success">
                     <div class="card-body text-center">
                         <div class="h2 mb-3">📄</div>
-                        <h5 class="card-title">OCR Extraction</h5>
+                        <h5 class="card-title">Smart OCR Extraction</h5>
                         <p class="card-text">
-                            Snap a photo of your CNIC and our Tesseract OCR engine automatically pulls out your name, number, and more.
+                            Automatically pulls out name, father name, CNIC, date of birth, address, and city from a photo of your ID card.
                         </p>
                     </div>
                 </div>
@@ -42,9 +47,9 @@
                 <div class="card h-100 border-success">
                     <div class="card-body text-center">
                         <div class="h2 mb-3">🤖</div>
-                        <h5 class="card-title">AI Validation</h5>
+                        <h5 class="card-title">Automatic AI Validation</h5>
                         <p class="card-text">
-                            A local AI assistant checks your form for errors and missing fields in real time, using a small language model running entirely on your machine.
+                            A local AI assistant checks your form for errors and missing fields. The status updates live, and the page refreshes automatically when done.
                         </p>
                     </div>
                 </div>
@@ -53,7 +58,7 @@
                 <div class="card h-100 border-success">
                     <div class="card-body text-center">
                         <div class="h2 mb-3">📥</div>
-                        <h5 class="card-title">Ready‑to‑Print PDF</h5>
+                        <h5 class="card-title">Ready-to-Print PDF</h5>
                         <p class="card-text">
                             Generate a professionally formatted PDF of your application with a single click — ready to sign and submit.
                         </p>
@@ -79,20 +84,20 @@
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-start">
                         <div class="ms-2 me-auto">
-                            <div class="fw-bold">Upload Your CNIC</div>
-                            Drag & drop a clear photo of your National ID card.
+                            <div class="fw-bold">Upload a Document Image</div>
+                            Choose a clean, machine‑printed image (for now, our mock CNIC is recommended for best extraction).
                         </div>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-start">
                         <div class="ms-2 me-auto">
-                            <div class="fw-bold">Review & Validate</div>
-                            The assistant flags any issues — fix them instantly.
+                            <div class="fw-bold">Background Processing</div>
+                            SmartForm extracts the data and validates it automatically. The status badge updates live — no waiting.
                         </div>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-start">
                         <div class="ms-2 me-auto">
                             <div class="fw-bold">Download PDF</div>
-                            Get your completed application, ready to submit.
+                            Once validated, download your completed form with all fields filled.
                         </div>
                     </li>
                 </ol>
