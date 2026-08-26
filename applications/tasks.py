@@ -24,7 +24,7 @@ def process_application(application_id):
     # 1. Extraction
     image_path = application.id_card_image.path
     extracted = extract_cnic_data(image_path)
-
+    
     # 2. Update fields (only if extracted value is not empty)
     if extracted.get('full_name'):
         application.full_name = extracted['full_name']
@@ -40,7 +40,10 @@ def process_application(application_id):
             ).date()
         except (ValueError, KeyError):
             pass  # leave as is if parsing fails
-
+    if extracted.get('address'):
+        application.address = extracted['address']
+    if extracted.get('city'):
+        application.city = extracted['city']
     # 3. Set initial status after extraction
     application.status = 'extracted'
     application.save()
@@ -59,19 +62,36 @@ def process_application(application_id):
     full_prompt = f"{system_prompt}\n\nUser: Check this form for errors.\nAssistant:"
     reply = call_ollama(full_prompt)
 
-    # Parse any ERROR_FIELD markers
+        # Parse any ERROR_FIELD markers
     errors = []
-    for line in reply.splitlines():
-        if line.startswith("ERROR_FIELD:"):
-            parts = line.split(":", 2)
-            if len(parts) >= 3:
-                errors.append(parts[1])
+    if reply and 'ERROR_FIELD:' in reply:
+        for line in reply.splitlines():
+            if line.startswith("ERROR_FIELD:"):
+                parts = line.split(":", 2)
+                if len(parts) >= 3:
+                    errors.append(parts[1])
 
-    # 5. If no errors, mark as validated
+    # If no AI errors, fallback to Django validation to be safe
     if not errors:
-        application.status = 'validated'
-        application.save()
-        return f"Application {application.id} validated successfully"
+        from .forms import ApplicationForm
+        form = ApplicationForm({
+            'full_name': application.full_name,
+            'father_name': application.father_name,
+            'cnic_number': application.cnic_number,
+            'date_of_birth': application.date_of_birth,
+            'address': application.address,
+            'city': application.city,
+            'reason': application.reason,
+        })
+        if form.is_valid():
+            application.status = 'validated'
+            application.save()
+            return f"Application {application.id} validated successfully (Django fallback)"
+        else:
+            # Keep as extracted, but you could store form errors if needed
+            return f"Application {application.id} extracted but invalid according to Django"
     else:
-        # Keep as 'extracted' (or could add a 'rejected' status, but for now extracted)
+        # AI found errors, keep extracted
+        application.status = 'extracted'
+        application.save()
         return f"Application {application.id} extracted but has errors: {errors}"

@@ -3,16 +3,19 @@ import pytesseract
 import re
 from datetime import datetime
 from .preprocessing import preprocess_image
-from .gemini import extract_with_gemini
 
-# Extraction template for CNIC (used by Tesseract fallback)
+
+# Extraction template for CNIC
 CNIC_TEMPLATE = {
     "full_name": {"label": "name", "direction": "right"},
     "father_name": {"label": "father", "direction": "right"},
     "cnic_number": {"label": "cnic", "direction": "right", "regex": r"\b\d{5}-?\d{7}-?\d\b|\b\d{13}\b"},
     "date_of_birth": {"label": "birth", "direction": "right",
                       "regex": r"\b\d{2}[-/]\d{2}[-/]\d{4}\b"},
+    "address": {"label": "address", "direction": "right"},
+    "city": {"label": "city", "direction": "right"},
 }
+
 
 def extract_with_tesseract(image_path):
     processed = preprocess_image(image_path)
@@ -46,7 +49,8 @@ def extract_with_tesseract(image_path):
         regex = config.get('regex', None)
 
         for i, w in enumerate(words):
-            if label in w['text']:
+            # Match label: check if word equals label or starts with label and ends with colon
+            if w['text'] == label or (w['text'].startswith(label) and w['text'].endswith(':')):
                 same_line = [
                     other for other in words
                     if abs(other['y'] - w['y']) < 10 and other['x'] > w['x']
@@ -62,6 +66,10 @@ def extract_with_tesseract(image_path):
                         else:
                             break
                     value = ' '.join(value_words)
+                    # Clean up strays: colons, periods, commas
+                    value = value.replace(':', ' ').replace('.', ' ').replace(',', ' ')
+                    value = value.strip()
+                    value = re.sub(r'\s+', ' ', value)   # collapse multiple spaces
                     if regex:
                         match = re.search(regex, value)
                         if match:
@@ -87,22 +95,15 @@ def extract_with_tesseract(image_path):
         except ValueError:
             extracted['date_of_birth'] = ''
 
+    # Final cleanup: remove any remaining punctuation at ends
     for key in extracted:
-        extracted[key] = extracted[key].strip("`'‘’\"")
+        extracted[key] = extracted[key].strip("`'‘’\" ,.")
 
     return extracted
 
+
 def extract_cnic_data(image_path):
     """
-    Primary: Gemini API extraction.
-    Fallback: Tesseract (if Gemini fails or returns empty).
+    Use Tesseract only (Gemini removed).
     """
-    gemini_data = extract_with_gemini(image_path)
-    if gemini_data:
-        # Ensure all keys exist, even if empty
-        for key in CNIC_TEMPLATE:
-            if key not in gemini_data:
-                gemini_data[key] = ''
-        return gemini_data
-
     return extract_with_tesseract(image_path)

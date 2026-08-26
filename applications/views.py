@@ -209,9 +209,18 @@ def validate_application(request, pk):
 
     return redirect('edit_application', pk=application.pk)
 
-
-
 @login_required
 def application_status(request, pk):
     application = get_object_or_404(Application, pk=pk, user=request.user)
-    return render(request, 'partials/status_badge.html', {'application': application})
+    # Get the previous status from the request (passed as query param from template)
+    previous_status = request.GET.get('last_status', '')
+    new_status = application.status
+
+    # Render the badge partial
+    response = render(request, 'partials/status_badge.html', {'application': application})
+
+    # If the status changed to 'validated', trigger a page refresh
+    if new_status == 'validated' and previous_status != 'validated':
+        response['HX-Refresh'] = 'true'
+
+    return response

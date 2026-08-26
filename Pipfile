@@ -13,7 +13,6 @@ weasyprint = "*"
 pillow = "*"
 celery = "*"
 redis = "*"
-google-genai = "*"
 
 [dev-packages]
 

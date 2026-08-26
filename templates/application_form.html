@@ -13,7 +13,7 @@
         <p>
             <strong>Status:</strong>
             <span id="status-badge"
-                  hx-get="{% url 'application_status' application.pk %}"
+                  hx-get="{% url 'application_status' application.pk %}?last_status={{ application.status }}"
                   hx-trigger="load, every 2s"
                   hx-swap="innerHTML">
                 <span class="badge 
