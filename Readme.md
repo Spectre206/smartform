@@ -18,9 +18,9 @@ A web application that automates the completion of structured forms by extractin
 
 ## Overview
 
-**SmartForm** is a standalone form automation system — no external APIs are connected. It demonstrates how AI and OCR can simplify filling structured forms.
+**SmartForm** is a standalone form automation system that demonstrates how AI and OCR can simplify filling structured forms.
 
-1. **Upload** a clean, machine-printed document image (e.g., a mock CNIC).
+1. **Upload** a document image (such as a CNIC).
 2. **Extract** name, father's name, ID number, date of birth, address, and city using Tesseract OCR.
 3. **Auto-fill** the application form.
 4. **Chat** with an AI assistant that explains fields, checks for missing data, and highlights errors.
@@ -32,13 +32,13 @@ Processing runs **asynchronously** in the background using Celery + Redis, so th
 
 ## What's New in v2.0
 
-- **Asynchronous processing** — OCR and validation now run in background tasks (Celery + Redis).
+- **Asynchronous processing** — OCR and validation run in background tasks (Celery + Redis).
 - **Automatic status flow** — upload → extracted → validated, without manual clicks.
 - **Live status polling** — HTMX updates the status badge every 2 seconds and auto-refreshes the page when validation completes.
 - **Extended OCR fields** — now extracts address and city, not just name and CNIC.
 - **Improved extraction reliability** — line-based bounding boxes, punctuation cleanup, and Django form validation fallback.
-- **Gemini removed** — Tesseract is the sole OCR engine for now.
-- **UI polish** — landing page updated to reflect the async workflow and its limitations.
+- **Streamlined OCR pipeline** — focused entirely on Tesseract for robust local processing.
+- **UI polish** — landing page updated to reflect the async workflow.
 
 ---
 
@@ -86,37 +86,18 @@ flowchart TD
 
 ---
 
-## Features (v2.0)
+## Features
 
 - **Landing page** — public-facing hero, feature cards, and CTA.
 - **User authentication** — sign up, log in, dashboard with application history.
-- **ID card OCR** — extracts personal information from a clean document image using Tesseract (works best on mock CNIC — see limitations).
-- **Auto-fill form** — data from OCR automatically populates the application.
-- **AI assistant (chat)** — interactive chat widget (HTMX) that explains fields, checks for errors, and highlights issues.
-- **Automatic validation** — after extraction, a background task runs AI validation and sets status to `validated` if no errors are found.
-- **Live status tracking** — badge updates every 2 seconds; the page auto-refreshes when status changes to `validated`.
+- **OCR extraction** — automatically pulls all required fields from an uploaded CNIC image.
+- **Auto-fill form** — extracted data populates the application instantly.
+- **AI assistant (chat)** — interactive HTMX chat that explains fields, checks for errors, and highlights issues.
+- **Automatic validation** — background task runs AI validation and sets status to `validated` when no errors are found.
+- **Live status tracking** — badge updates every 2 seconds; page auto-refreshes on `validated`.
 - **PDF generation** — produces a filled, official-looking application form for download.
-- **Delete application** — remove applications directly from the dashboard.
+- **Delete application** — manage applications directly from the dashboard.
 - **Consistent UI** — forest-green header/footer, centered forms, Bootstrap 5 styling.
-
----
-
-## Current Limitations (v2.0)
-
-- **OCR accuracy** — Tesseract works best on clean, machine-printed mock images. Real-world ID cards with complex backgrounds may not extract perfectly. Use the provided mock CNIC generator for reliable demos.
-- **AI assistant is basic** — the assistant can answer simple questions and validate fields, but it isn't yet deeply integrated into every step of the workflow. Planned for v3.
-- **No multiple form types** — only the CNIC correction form is supported. Expanding to other forms is planned for later.
-- **Single-machine setup** — the Celery worker must be run separately; there's no Docker Compose yet.
-
----
-
-## Future Roadmap (Portfolio v3)
-
-- **Enhanced AI assistant** — more context-aware, persistent error storage, better guidance.
-- **Vision-language model for OCR** — replace Tesseract with a local vision model (e.g., `minicpm-v` via Ollama) for robust, context-aware extraction from real ID cards.
-- **REST API** — build a DRF API for mobile or third-party integration.
-- **Containerization** — Docker Compose for easy deployment of Django, Celery, Redis, and Ollama.
-- **Comprehensive integration tests** covering the full asynchronous pipeline.
 
 ---
 

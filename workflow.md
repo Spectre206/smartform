@@ -277,14 +277,4 @@ pipenv run python3 manage.py runserver
 
 ---
 
-## 12. Future Upgrades (Portfolio v3)
-
-- **Enhanced AI assistant** — give the assistant more context, persistent error storage, and better guidance.
-- **Vision-language model for OCR** — replace Tesseract with a local vision model (e.g., `minicpm-v` via Ollama) for robust, context-aware extraction from real ID cards.
-- **REST API** — build a DRF API for mobile or third-party integration.
-- **Containerization** — Docker Compose for easy deployment of Django, Celery, Redis, and Ollama.
-- **Comprehensive integration tests** covering the full asynchronous pipeline.
-
----
-
 *Maintained by [Spectre206](https://github.com/Spectre206) — Portfolio Project*
